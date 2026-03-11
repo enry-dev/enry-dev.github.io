@@ -1,44 +1,90 @@
 const canvas = document.getElementById('matrix');
 const ctx = canvas.getContext('2d');
 
-let width = window.innerWidth;
-let height = window.innerHeight;
+const CHARS = '01010101010101010101010101010101010101010101010101';
+const FONT_SIZE = 14;
+let width, height, columns, drops;
 
-canvas.width = width;
-canvas.height = height;
+function getStopHeight() {
+  // Canvas alto quanto header + navbar
+  const header = document.querySelector('header');
+  const navbar = document.getElementById('navbar');
+  const h = (header ? header.offsetHeight : 0) + (navbar ? navbar.offsetHeight : 0);
+  return h > 0 ? h : window.innerHeight;
+}
 
-const letters = "010101010101010101010101010101010101010101010101";
-const fontSize = 16;
-let columns = Math.floor(width / fontSize);
-
-// Drops inizializzati a valori casuali per avere cascata mista fin da subito
-let drops = Array.from({length: columns}, () => Math.floor(Math.random() * height / fontSize));
+function init() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = getStopHeight();
+  columns = Math.floor(width / FONT_SIZE);
+  drops = Array.from({ length: columns }, () =>
+    Math.floor(Math.random() * (height / FONT_SIZE))
+  );
+}
 
 function drawMatrix() {
-  // Sfondo semi-trasparente per effetto scia
-  ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "#00FF00";
-  ctx.font = fontSize + "px Share Tech Mono";
+  ctx.font = `${FONT_SIZE}px 'Share Tech Mono', monospace`;
 
   for (let i = 0; i < drops.length; i++) {
-    const text = letters[Math.floor(Math.random() * letters.length)];
-    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+    const char = CHARS[Math.floor(Math.random() * CHARS.length)];
+    const y = drops[i] * FONT_SIZE;
 
-    if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+    // Head char: brighter
+    if (drops[i] > 0) {
+      ctx.fillStyle = '#ccffcc';
+      ctx.fillText(char, i * FONT_SIZE, y);
+    }
+
+    // Body char: green
+    const prevChar = CHARS[Math.floor(Math.random() * CHARS.length)];
+    ctx.fillStyle = '#00FF00';
+    ctx.fillText(prevChar, i * FONT_SIZE, y - FONT_SIZE);
+
+    if (y > height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
     drops[i]++;
   }
 }
 
-let interval = setInterval(drawMatrix, 50);
+// Wait for DOM layout before measuring heights
+window.addEventListener('DOMContentLoaded', () => {
+  init();
+}, { once: true });
 
+// Fallback if already loaded
+if (document.readyState !== 'loading') {
+  init();
+}
+
+let rafId;
+let last = 0;
+
+function throttledLoop(ts) {
+  if (ts - last > 42) {
+    drawMatrix();
+    last = ts;
+  }
+  rafId = requestAnimationFrame(throttledLoop);
+}
+
+rafId = requestAnimationFrame(throttledLoop);
+
+// Pause when tab is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelAnimationFrame(rafId);
+  } else {
+    last = 0;
+    rafId = requestAnimationFrame(throttledLoop);
+  }
+});
+
+let resizeTimer;
 window.addEventListener('resize', () => {
-  width = window.innerWidth;
-  height = window.innerHeight;
-  canvas.width = width;
-  canvas.height = height;
-  columns = Math.floor(width / fontSize);
-  // re-inizializza drops casuali
-  drops = Array.from({length: columns}, () => Math.floor(Math.random() * height / fontSize));
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(init, 200);
 });

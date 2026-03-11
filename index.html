@@ -3,50 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EnryDev - Developer Portfolio</title>
+  <meta name="description" content="EnryDev - Developer & Tech Enthusiast. Portfolio personale con progetti e contatti.">
+  <title>EnryDev - Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Matrix canvas -->
-  <canvas id="matrix"></canvas>
+  <!-- Matrix canvas background -->
+  <canvas id="matrix" aria-hidden="true"></canvas>
+
+  <!-- Loader -->
+  <div id="loader">
+    <span id="loader-text">[OK] Kernel loaded...</span>
+  </div>
 
   <header>
-    <h1>EnryDev</h1>
-    <p>Developer & Tech Enthusiast</p>
-  </header>
-
-  <nav>
-    <a href="#about">About</a>
-    <a href="#projects">Projects</a>
-    <a href="#contact">Contact</a>
-  </nav>
-
-  <section id="about">
-    <h2>About Me</h2>
-    <p>Ciao! Sono <strong>EnryDev</strong>, sviluppatore appassionato di tecnologia e progetti innovativi. Qui puoi trovare tutti i miei lavori e contributi.</p>
-  </section>
-
-  <section id="projects">
-    <h2>Projects</h2>
-    <div class="projects">
-      <div class="project-card">
-        <h3>NewDesk</h3>
-        <p>Un OS creato dal sottoscritto.</p>
+    <div class="header-inner">
+      <h1 class="glitch" data-text="EnryDev">EnryDev</h1>
+      <p class="subtitle">Developer &amp; Tech Geek</p>
+      <div class="header-tags">
+        <span class="tag">&lt;make /&gt;</span>
+        <span class="tag">&lt;build /&gt;</span>
+        <span class="tag">&lt;test /&gt;</span>
       </div>
     </div>
-  </section>
+  </header>
 
-  <section id="contact">
-    <h2>Contact</h2>
-    <p>Github: <a href="https://github.com/enrydev" target="_blank" rel="noopener noreferrer">github.com/enrydev</a></p>
-    <p>Email: <a href="mailto:enrydev@example.com">enrydev@example.com</a></p>
-  </section>
+  <nav id="navbar">
+    <div class="nav-inner">
+      <span class="nav-logo">~/enrydev</span>
+      <div class="nav-links">
+        <a href="#about" data-it="Chi sono" data-en="About">About</a>
+        <a href="#skills" data-it="Competenze" data-en="Skills">Skills</a>
+        <a href="#projects" data-it="Progetti" data-en="Projects">Projects</a>
+        <a href="#contact" data-it="Contattami" data-en="Contact">Contact</a>
+      </div>
+      <div class="nav-right">
+        <div class="lang-switcher">
+          <button class="lang-btn active" data-lang="it" aria-label="Italiano" title="Italiano">🇮🇹</button>
+          <button class="lang-btn" data-lang="en" aria-label="English" title="English">🇺🇸</button>
+        </div>
+        <button class="hamburger" id="hamburger" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#about" data-it="Chi sono" data-en="About">About</a>
+      <a href="#skills" data-it="Competenze" data-en="Skills">Skills</a>
+      <a href="#projects" data-it="Progetti" data-en="Projects">Projects</a>
+      <a href="#contact" data-it="Contattami" data-en="Contact">Contact</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="about">
+      <h2><span class="prompt">&gt;</span> <span data-it="About Me" data-en="About Me">About Me</span></h2>
+      <div class="about-grid">
+        <div class="about-text">
+          <p data-it="Ciao! Sono &lt;strong&gt;EnryDev&lt;/strong&gt;, uno sviluppatore appassionato di tecnologia, sistemi operativi e programmazione in generale."
+             data-en="Hi! I'm &lt;strong&gt;EnryDev&lt;/strong&gt;, a developer passionate about technology, operating systems, and programming in general.">Ciao! Sono <strong>EnryDev</strong>, uno sviluppatore appassionato di tecnologia, sistemi operativi e programmazione a basso livello. Mi piace costruire cose dal nulla e spingere i limiti di ciò che è possibile fare con il codice.</p>
+          <p class="about-sub"
+             data-it="Attualmente mi sto concentrando su progetti OS, tool di sistema e sviluppo web."
+             data-en="Currently focusing on OS projects, system tools and web development.">Attualmente mi sto concentrando su progetti OS, tool di sistema e sviluppo web.</p>
+        </div>
+        <div class="about-stats">
+          <div class="stat-card">
+            <span class="stat-num">6+</span>
+            <span class="stat-label" data-it="Anni di coding" data-en="Years of coding">Anni di coding</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">∞</span>
+            <span class="stat-label" data-it="Curiosità" data-en="Curiosity">Curiosità</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">99%</span>
+            <span class="stat-label" data-it="Open Source" data-en="Open Source">Open Source</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="skills">
+      <h2><span class="prompt">&gt;</span> Skills</h2>
+      <div class="skills-grid">
+        <div class="skill-item">
+          <span class="skill-name">HTML / CSS</span>
+          <div class="skill-bar"><div class="skill-fill" style="--w: 95%"></div></div>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">JavaScript</span>
+          <div class="skill-bar"><div class="skill-fill" style="--w: 45%"></div></div>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Python</span>
+          <div class="skill-bar"><div class="skill-fill" style="--w: 75%"></div></div>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">C / C++</span>
+          <div class="skill-bar"><div class="skill-fill" style="--w: 35%"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <h2><span class="prompt">&gt;</span> <span data-it="Projects" data-en="Projects">Projects</span></h2>
+      <div class="projects">
+        <div class="project-card">
+          <div class="project-header">
+            <span class="project-icon">💾</span>
+            <span class="project-status">WIP</span>
+          </div>
+          <h3>NewDesk</h3>
+          <p data-it="Un sistema operativo creato da zero. Kernel custom, shell testuale e gestione processi base."
+             data-en="An operating system built from scratch. Custom kernel, text shell and basic process management.">Un sistema operativo creato da zero. Kernel custom, shell testuale e gestione processi base.</p>
+          <div class="project-tags">
+            <span class="tag">C</span>
+            <span class="tag">ASM</span>
+          </div>
+          <a class="project-link disabled" target="_blank" rel="noopener noreferrer">View on GitHub →</a>
+        </div>
+
+        <div class="project-card">
+          <div class="project-header">
+            <span class="project-icon">🌐</span>
+            <span class="project-status">Live</span>
+          </div>
+          <h3>Portfolio</h3>
+          <p data-it="Questo sito. Matrix rain, design hacker e struttura minimal con HTML, CSS e JS vanilla."
+             data-en="This website. Matrix rain, hacker design and minimal structure with vanilla HTML, CSS and JS.">Questo sito. Matrix rain, design hacker e struttura minimal con HTML, CSS e JS vanilla.</p>
+          <div class="project-tags">
+            <span class="tag">HTML</span>
+            <span class="tag">CSS</span>
+            <span class="tag">JS</span>
+          </div>
+          <a href="https://github.com/enry-dev/enrydev" class="project-link" target="_blank" rel="noopener noreferrer">View on GitHub →</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <h2><span class="prompt">&gt;</span> <span data-it="Contact" data-en="Contact">Contact</span></h2>
+      <p class="contact-intro"
+         data-it="Vuoi collaborare o hai una domanda? Scrivimi."
+         data-en="Want to collaborate or have a question? Reach out.">Vuoi collaborare o hai una domanda? Scrivimi.</p>
+      <div class="contact-links">
+        <a href="https://github.com/enry-dev" target="_blank" rel="noopener noreferrer" class="contact-card">
+          <span class="contact-icon">&#128025;</span>
+          <div>
+            <span class="contact-label">GitHub</span>
+            <span class="contact-value">github.com/enry-dev</span>
+          </div>
+        </a>
+      </div>
+    </section>
+  </main>
 
   <footer>
-    &copy; 2026 EnryDev
+    <span>&copy; 2026 EnryDev</span>
   </footer>
 
   <script src="matrix.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

@@ -61,11 +61,14 @@ a:hover {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  /* width/height gestiti via JS con style.width/height */
   z-index: 0;
   opacity: 0.55;
   pointer-events: none;
   display: block;
+  /* Evita scaling indesiderato su mobile */
+  image-rendering: pixelated;
+  max-width: 100%;
 }
 
 /* =====================

@@ -160,3 +160,107 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
     applyLang(btn.getAttribute('data-lang'));
   });
 });
+
+// =====================
+// PROJECTS DATA
+// =====================
+const projectsContainer = document.getElementById('projectsContainer');
+
+async function loadProjects() {
+  if (!projectsContainer) return;
+
+  try {
+    const response = await fetch('data/projects.json');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch projects.json (${response.status})`);
+    }
+    const projects = await response.json();
+    if (!Array.isArray(projects)) {
+      throw new Error('projects.json did not return an array');
+    }
+    renderProjectCards(projects);
+  } catch (error) {
+    console.error('Unable to load projects', error);
+    projectsContainer.innerHTML = '<p class="project-error" data-it="Impossibile caricare i progetti." data-en="Unable to load projects.">Unable to load projects.</p>';
+    applyLang(currentLang);
+  }
+}
+
+function renderProjectCards(projects) {
+  if (!projectsContainer) return;
+  const fragment = document.createDocumentFragment();
+
+  projects.forEach(project => {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+
+    const header = document.createElement('div');
+    header.className = 'project-header';
+
+    const icon = document.createElement('span');
+    icon.className = 'project-icon';
+    icon.textContent = project.icon || '🧩';
+
+    const status = document.createElement('span');
+    status.className = 'project-status';
+    status.textContent = project.status || '';
+    header.append(icon, status);
+
+    const title = document.createElement('h3');
+    title.textContent = project.name || '';
+
+    const descriptionEl = document.createElement('p');
+    const descriptionIt = project.description?.it || '';
+    const descriptionEn = project.description?.en || descriptionIt;
+    descriptionEl.setAttribute('data-it', descriptionIt);
+    descriptionEl.setAttribute('data-en', descriptionEn);
+    descriptionEl.innerHTML = project.description?.[currentLang] || descriptionIt;
+
+    const tags = Array.isArray(project.tags) ? project.tags : [];
+    let tagsWrapper;
+    if (tags.length) {
+      tagsWrapper = document.createElement('div');
+      tagsWrapper.className = 'project-tags';
+      tags.forEach(tagValue => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = tagValue;
+        tagsWrapper.appendChild(tag);
+      });
+    }
+
+    const linkEl = document.createElement('a');
+    linkEl.className = 'project-link';
+    const linkLabelSource = project.linkLabel;
+    const defaultLabel = typeof linkLabelSource === 'string'
+      ? linkLabelSource
+      : (linkLabelSource?.en || linkLabelSource?.it || 'View on GitHub →');
+    const labelIt = (typeof linkLabelSource === 'object' && linkLabelSource.it) ? linkLabelSource.it : defaultLabel;
+    const labelEn = (typeof linkLabelSource === 'object' && linkLabelSource.en) ? linkLabelSource.en : defaultLabel;
+    linkEl.setAttribute('data-it', labelIt);
+    linkEl.setAttribute('data-en', labelEn);
+    linkEl.innerHTML = currentLang === 'en' ? labelEn : labelIt;
+
+    if (project.link) {
+      linkEl.href = project.link;
+      linkEl.target = '_blank';
+      linkEl.rel = 'noopener noreferrer';
+    } else {
+      linkEl.classList.add('disabled');
+      linkEl.setAttribute('aria-disabled', 'true');
+    }
+
+    card.append(header, title, descriptionEl);
+    if (tagsWrapper) {
+      card.append(tagsWrapper);
+    }
+    card.append(linkEl);
+    fragment.appendChild(card);
+  });
+
+  projectsContainer.innerHTML = '';
+  projectsContainer.appendChild(fragment);
+  applyLang(currentLang);
+}
+
+loadProjects();

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Portfolio",
+    "icon": "🌐",
+    "status": "Live",
+    "description": {
+      "it": "Questo sito. Matrix rain, design hacker e struttura minimal con HTML, CSS e JS vanilla.",
+      "en": "This website. Matrix rain, hacker design and minimal structure with vanilla HTML, CSS and JS."
+    },
+    "tags": ["HTML", "CSS", "JS"],
+    "link": "https://github.com/enry-dev/enrydev",
+    "linkLabel": "View on GitHub →"
+  }
+]

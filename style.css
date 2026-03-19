@@ -543,6 +543,17 @@ section.visible .skill-fill {
   border-bottom-color: var(--green);
 }
 
+.project-loading,
+.project-error {
+  color: var(--green-dim);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.project-error {
+  margin-top: 0.4rem;
+}
+
 /* =====================
    CONTACT
    ===================== */
@@ -577,7 +588,17 @@ section.visible .skill-fill {
 }
 
 .contact-icon {
-  font-size: 1.5rem;
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-icon svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  fill: var(--green);
 }
 
 .contact-label {

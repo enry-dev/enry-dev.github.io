@@ -33,6 +33,7 @@ function init() {
   scene.add(sunMesh);
 
   buildCity();
+  buildStarField();
   buildWater();
   spawnPedestrians(28);
   spawnCoins(22);
@@ -57,6 +58,7 @@ function init() {
     keys[key] = false;
   });
   setupMouseLook();
+  setupTouchControls();
 
   animate();
 }

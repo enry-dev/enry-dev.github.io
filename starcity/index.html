@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Los Ricreados — Open World 3D</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -10,6 +11,12 @@
 <body>
 
   <div id="game-container"></div>
+
+  <div id="orientation-overlay" aria-label="Ruota il telefono">
+    <div class="orientation-mark">↔</div>
+    <h1>RUOTA IL TELEFONO</h1>
+    <p>Star City funziona in modalità orizzontale.</p>
+  </div>
 
   <div id="start-overlay">
     <div class="start-grid"></div>
@@ -21,17 +28,12 @@
         </div>
         <div class="start-copy">
           <button id="start-btn"><span>▶</span> INIZIA A GIOCARE</button>
-          <div id="desktop-only-note">DESKTOP REQUIRED // TASTIERA E MOUSE NECESSARI</div>
+          <div id="desktop-only-note">TASTIERA, MOUSE O CONTROLLI TOUCH</div>
           <div id="loading-note">Esperienza originale in browser con Three.js. Nessun asset o codice originale del gioco è stato usato.</div>
         </div>
       </section>
     </main>
-    <section id="mobile-block" aria-label="Gioco non disponibile su mobile">
-      <img src="images/starcity.png" alt="Star City">
-      <div class="mobile-block-line"></div>
-      <h1>DESKTOP REQUIRED</h1>
-      <p>Star City richiede una tastiera e un mouse.<br>Apri il gioco da un computer per continuare.</p>
-    </section>
+    <div class="version-label">BETA 0.1 (09/09/2026)</div>
   </div>
 
   <div id="busted-overlay">
@@ -50,6 +52,7 @@
       </div>
       <div class="pause-hint">Premi ESC per riprendere</div>
     </div>
+    <div class="version-label">BETA 0.1 (09/09/2026)</div>
   </div>
 
   <div id="hud" style="display:none;">
@@ -84,6 +87,7 @@
       <div id="speed-val">0</div>
       <div id="speed-unit">KM/H</div>
     </div>
+    <div class="version-label">BETA 0.1 (09/09/2026)</div>
     <div id="debug-panel" aria-label="Informazioni debug">
       <div class="debug-title">DEBUG / LIVE</div>
       <div id="debug-readout"></div>
@@ -92,6 +96,21 @@
     <div id="controls-hint">W/S/A/D muovi · Mouse guarda · Tasto destro mira · Tasto sinistro spara · E entra/esci/ruba
       auto · 1-4 cambia arma</div>
     <div id="scope-vignette"></div>
+    <div id="mobile-controls" aria-label="Controlli touch">
+      <div id="mobile-stick" class="mobile-stick" aria-label="Movimento"><div class="mobile-stick-knob"></div></div>
+      <div class="mobile-actions mobile-actions-left">
+        <button class="touch-button touch-small" data-touch-key="shift" type="button">CORSA</button>
+        <button class="touch-button touch-small" data-touch-action="interact" type="button">E</button>
+      </div>
+      <div class="mobile-actions mobile-actions-right">
+        <button class="touch-button touch-small" data-touch-action="weapon-prev" type="button">ARMA -</button>
+        <button class="touch-button touch-small" data-touch-action="weapon-next" type="button">ARMA +</button>
+        <button class="touch-button touch-small" data-touch-action="reload" type="button">R</button>
+        <button class="touch-button touch-small" data-touch-key=" " type="button">FRENO</button>
+        <button class="touch-button touch-aim" data-touch-action="aim" type="button">MIRA</button>
+        <button class="touch-button touch-fire" data-touch-action="fire" type="button">FUOCO</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

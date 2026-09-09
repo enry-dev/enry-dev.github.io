@@ -215,6 +215,14 @@
       z-index: 5;
     }
 
+    #mobile-controls {
+      display: none;
+    }
+
+    #orientation-overlay {
+      display: none;
+    }
+
     #scope-vignette.active {
       opacity: 1;
     }
@@ -335,6 +343,19 @@
       opacity: 0.65;
       text-align: center;
       line-height: 1.5;
+    }
+
+    .version-label {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 2;
+      color: rgba(255, 255, 255, 0.7);
+      font: 10px/1.2 Consolas, 'Courier New', monospace;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-shadow: 1px 1px 0 #000;
+      pointer-events: none;
     }
 
     /* ---------- Start overlay ---------- */
@@ -629,7 +650,7 @@
       letter-spacing: 1.5px;
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 900px) and (pointer: coarse) {
       #start-overlay {
         align-items: flex-start;
         padding: 22px 18px;
@@ -693,7 +714,7 @@
       }
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 900px) and (pointer: coarse) {
       #desktop-only-note {
         display: block;
       }
@@ -782,10 +803,6 @@
 
     #desktop-only-note {
       color: #fff;
-    }
-
-    #mobile-block {
-      display: none;
     }
 
     /* ---------- Monochrome game HUD ---------- */
@@ -930,6 +947,7 @@
     }
 
     #speed-wrap {
+      bottom: 54px;
       padding: 8px 14px;
       min-width: 96px;
     }
@@ -1096,51 +1114,237 @@
       letter-spacing: 0.8px;
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 900px) and (pointer: coarse) {
+      html, body, #game-container, #hud {
+        touch-action: none;
+      }
+
+      #start-overlay {
+        padding: 20px;
+      }
+
       .start-shell {
-        display: none;
-      }
-
-      #mobile-block {
-        display: flex;
-        width: min(420px, 100%);
-        min-height: 300px;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        text-align: center;
-      }
-
-      #mobile-block img {
         display: block;
-        width: min(330px, 82vw);
-        height: auto;
-        margin-bottom: 32px;
+        width: min(520px, 100%);
       }
 
-      .mobile-block-line {
-        width: 54px;
-        height: 1px;
-        margin-bottom: 24px;
-        background: #fff;
+      .start-hero {
+        padding: 0;
       }
 
-      #mobile-block h1 {
-        margin: 0 0 14px;
-        color: #fff;
-        font-size: clamp(20px, 7vw, 30px);
-        letter-spacing: 2px;
+      .brand-logo {
+        width: min(360px, 82vw);
       }
 
-      #mobile-block p {
-        margin: 0;
-        color: #888;
+      .start-copy {
+        margin-top: 30px;
+      }
+
+      #start-btn {
+        min-height: 52px;
+        padding: 14px 18px;
         font-size: 12px;
-        line-height: 1.7;
+      }
+
+      #desktop-only-note {
+        display: block;
+        font-size: 9px;
+      }
+
+      #loading-note {
+        font-size: 9px;
       }
 
       #debug-panel {
         display: none;
+      }
+
+      #lock-hint, #controls-hint {
+        display: none !important;
+      }
+
+      #top-left {
+        top: 10px;
+        left: 10px;
+        min-width: 142px;
+        padding: 7px 9px;
+      }
+
+      #top-right {
+        top: 10px;
+        right: 10px;
+        padding: 7px 9px;
+      }
+
+      #money {
+        font-size: 16px;
+      }
+
+      #stars {
+        font-size: 14px;
+      }
+
+      #minimap-wrap {
+        bottom: 18px;
+        left: 12px;
+        width: 122px;
+        height: 122px;
+      }
+
+      #speed-wrap {
+        bottom: 22px;
+        right: 50%;
+        transform: translateX(50%);
+        min-width: 72px;
+        padding: 6px 9px;
+      }
+
+      #weapon-wrap {
+        bottom: auto;
+        top: 78px;
+        right: 10px;
+        padding: 5px 8px;
+        font-size: 10px;
+      }
+
+      #mobile-controls {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        pointer-events: none;
+        font-family: Consolas, 'Courier New', monospace;
+      }
+
+      .mobile-stick {
+        position: absolute;
+        left: 18px;
+        bottom: 22px;
+        width: 128px;
+        height: 128px;
+        border: 2px solid rgba(255, 255, 255, 0.52);
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.32);
+        pointer-events: auto;
+        touch-action: none;
+      }
+
+      .mobile-stick::after {
+        content: '';
+        position: absolute;
+        inset: 25%;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+      }
+
+      .mobile-stick-knob {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 46px;
+        height: 46px;
+        border: 1px solid #fff;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .mobile-actions {
+        position: absolute;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 142px;
+        pointer-events: auto;
+      }
+
+      .mobile-actions-left {
+        left: 162px;
+        bottom: 26px;
+      }
+
+      .mobile-actions-right {
+        right: 16px;
+        bottom: 24px;
+        justify-content: flex-end;
+      }
+
+      .touch-button {
+        min-width: 60px;
+        min-height: 44px;
+        padding: 7px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 2px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        font: 700 10px Consolas, 'Courier New', monospace;
+        letter-spacing: 0.5px;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .touch-button:active {
+        background: #fff;
+        color: #000;
+      }
+
+      .touch-small {
+        min-width: 62px;
+      }
+
+      .touch-aim {
+        border-color: #ffce33;
+      }
+
+      .touch-fire {
+        min-width: 76px;
+        min-height: 54px;
+        border-color: #ff3b3b;
+        background: rgba(100, 0, 0, 0.72);
+      }
+
+      .version-label {
+        right: 10px;
+        bottom: 4px;
+        font-size: 8px;
+      }
+    }
+
+    @media (max-width: 900px) and (pointer: coarse) and (orientation: portrait) {
+      #orientation-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #050505;
+        color: #fff;
+        text-align: center;
+        font-family: Consolas, 'Courier New', monospace;
+      }
+
+      #orientation-overlay h1 {
+        margin: 18px 0 10px;
+        font-size: 22px;
+        letter-spacing: 2px;
+      }
+
+      #orientation-overlay p {
+        margin: 0;
+        color: #aaa;
+        font-size: 12px;
+      }
+
+      .orientation-mark {
+        color: #ffce33;
+        font-size: 56px;
+        line-height: 1;
       }
     }
 

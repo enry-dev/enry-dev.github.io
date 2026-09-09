@@ -124,8 +124,8 @@ function tryHit(origin, dir, weapon) {
     if (!v.userData.hasDriver) continue;
     const worldPos = new THREE.Vector3();
     v.userData.driverMesh.getWorldPosition(worldPos);
-    worldPos.y += 0.45;
-    if (hitTest(origin, dir, worldPos, 0.48, maxRange)) {
+    worldPos.y += 1.2;
+    if (hitTest(origin, dir, worldPos, 0.7, maxRange)) {
       v.remove(v.userData.driverMesh);
       v.userData.hasDriver = false;
       v.userData.driverMesh = null;

@@ -74,6 +74,16 @@ function registerVehicleCollision(v) {
   return true;
 }
 
+function registerBuildingImpact(vehicle, impactSpeed) {
+  if (!vehicle || impactSpeed <= 1.2) return false;
+  const hit = registerVehicleCollision(vehicle);
+  if (hit && vehicle === car && mode === 'car') {
+    carSpeed *= 0.9;
+    showToast('Impatto: integrita auto ridotta');
+  }
+  return hit;
+}
+
 // moltiplicatore attuale di velocità massima del veicolo (1 = nessuno scontro subito)
 function vehicleSpeedMult(v) {
   if (!v || !v.userData) return 1;

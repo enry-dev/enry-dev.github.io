@@ -142,17 +142,62 @@ function createVehicleBreakEffects(vehicle) {
 
 function breakVehicle(vehicle) {
   if (!vehicle || vehicle.userData.isWrecked) return;
+  const driver = vehicle.userData.driverMesh;
+  if (driver) ejectCivilianDriver(vehicle, driver);
   vehicle.userData.isWrecked = true;
+  vehicle.userData.wreckedAt = clock.elapsedTime;
   vehicle.userData.speedMult = 0;
   vehicle.userData.hasDriver = false;
-  if (vehicle.userData.driverMesh) {
-    vehicle.remove(vehicle.userData.driverMesh);
-    vehicle.userData.driverMesh = null;
-  }
+  vehicle.userData.driverMesh = null;
   createVehicleBreakEffects(vehicle);
   if (vehicle === car) {
     carSpeed = 0;
+    aiming = false;
+    mouseHeld = false;
+    mode = 'foot';
+    player.position.set(vehicle.position.x + 3.2, 0, vehicle.position.z);
+    updatePlayerVisibility();
+    document.getElementById('mode-badge').textContent = 'A PIEDI';
     showToast('AUTO DISTRUTTA: non e piu utilizzabile');
+  }
+}
+
+function ejectCivilianDriver(vehicle, driver) {
+  const worldPosition = new THREE.Vector3();
+  driver.getWorldPosition(worldPosition);
+  vehicle.remove(driver);
+  worldPosition.x += Math.cos(vehicle.rotation.y) * 2.2;
+  worldPosition.z -= Math.sin(vehicle.rotation.y) * 2.2;
+  worldPosition.y = 0;
+  driver.position.copy(worldPosition);
+  driver.rotation.y = vehicle.rotation.y;
+  scene.add(driver);
+  pedestrians.push({
+    mesh: driver,
+    dir: vehicle.rotation.y,
+    speed: 1.2 + Math.random() * 0.5,
+    timer: 0,
+    alive: true
+  });
+}
+
+function removeDestroyedVehicles() {
+  const now = clock.elapsedTime;
+  const wreckLifetime = 5;
+
+  for (let i = worldVehicles.length - 1; i >= 0; i--) {
+    const vehicle = worldVehicles[i];
+    if (!vehicle.userData.isWrecked || now - vehicle.userData.wreckedAt < wreckLifetime) continue;
+    scene.remove(vehicle);
+    worldVehicles.splice(i, 1);
+  }
+
+  for (let i = policeCars.length - 1; i >= 0; i--) {
+    const unit = policeCars[i];
+    const vehicle = unit.mesh;
+    if (!vehicle.userData.isWrecked || now - vehicle.userData.wreckedAt < wreckLifetime) continue;
+    removePoliceUnit(unit);
+    policeCars.splice(i, 1);
   }
 }
 
@@ -196,7 +241,7 @@ function buildPlayer() {
   player.add(body, head);
   addHumanoidLimbs(player, bodyMat, 1.2);
   addSimpleFace(player, 1.85, 1.12);
-  player.position.set(CAR_SPAWN.x + 4, 0, CAR_SPAWN.z + 4);
+  player.position.copy(PLAYER_HOME);
   scene.add(player);
   updatePlayerWeaponMesh();
 }
@@ -334,6 +379,7 @@ function updateTraffic(dt) {
 
     const mv = slideMove(v.position.x, v.position.z, Math.sin(v.rotation.y) * v.userData.driveSpeed * vehicleSpeedMult(v) * dt, Math.cos(v.rotation.y) * v.userData.driveSpeed * vehicleSpeedMult(v) * dt, 1.6, v);
     v.position.x = mv.x; v.position.z = mv.z;
+    if (mv.blocked) registerBuildingImpact(v, v.userData.driveSpeed * vehicleSpeedMult(v));
     if (mv.blocked) {
       v.userData.waypoint = randomTrafficWaypoint(v);
       v.rotation.y += Math.PI / 2;

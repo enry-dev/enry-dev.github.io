@@ -1,7 +1,7 @@
 ﻿// UPDATE LOOP PIECES
 // ---------------------------------------------------------------------
 function updateCar(dt) {
-  const baseAccel = 14, baseMaxSpeed = 34, baseReverseMax = -12, friction = 0.98, baseBrakeForce = 22, turnRate = 1.9;
+  const baseAccel = 14, baseReverseMax = -12, friction = 0.98, baseBrakeForce = 22, turnRate = 1.9;
 
   if (car.userData.isWrecked) {
     carSpeed = 0;
@@ -13,12 +13,12 @@ function updateCar(dt) {
   // velocità massima e retromarcia scendono tutte in base al danno accumulato
   const dmgFactor = vehicleSpeedMult(car);
   const accel = baseAccel * dmgFactor;
-  const maxSpeed = baseMaxSpeed * dmgFactor;
+  const maxSpeed = PLAYER_BASE_MAX_SPEED * dmgFactor;
   const reverseMax = baseReverseMax * dmgFactor;
   const brakeForce = baseBrakeForce;
 
-  if (keys['w']) carSpeed += accel * dt;
-  else if (keys['s']) carSpeed -= brakeForce * dt;
+  if (keys['w']) carSpeed += accel * touchMoveIntensity * dt;
+  else if (keys['s']) carSpeed -= brakeForce * touchMoveIntensity * dt;
   else carSpeed *= Math.pow(friction, dt * 60);
 
   if (keys[' ']) carSpeed *= Math.pow(0.9, dt * 60);
@@ -37,9 +37,10 @@ function updateCar(dt) {
     car.position.x = nx;
     car.position.z = nz;
   } else {
-    // sbattere contro un palazzo: rimbalzo immediato, ma solo gli scontri fra
-    // veicoli intaccano in modo permanente la velocità massima
+    // Gli urti contro i palazzi usano lo stesso danno permanente degli scontri
+    // fra veicoli: integrita e velocita massima scendono insieme.
     if (Math.abs(carSpeed) > 7) playCrashSound(Math.abs(carSpeed));
+    registerBuildingImpact(car, Math.abs(carSpeed));
     carSpeed *= -0.3;
   }
 
@@ -89,7 +90,7 @@ function updatePlayerFoot(dt) {
   const len = Math.sqrt(mvx * mvx + mvz * mvz);
   if (len > 0) {mvx /= len; mvz /= len;}
 
-  const mv = slideMove(player.position.x, player.position.z, mvx * moveSpeed * dt, mvz * moveSpeed * dt, 0.6);
+  const mv = slideMove(player.position.x, player.position.z, mvx * moveSpeed * touchMoveIntensity * dt, mvz * moveSpeed * touchMoveIntensity * dt, 0.6);
   player.position.x = mv.x; player.position.z = mv.z;
   animateHumanoid(player, len * moveSpeed, dt);
   document.getElementById('speed-val').textContent = len > 0 ? Math.round(moveSpeed * 3.6) : 0;
@@ -275,6 +276,7 @@ function updateDayNight(dt) {
   const skyColor = nightColor.clone().lerp(dayColor, daylight);
   scene.background = skyColor;
   scene.fog = new THREE.Fog(skyColor.getHex(), 60, 320);
+  updateStarField(daylight, clock.elapsedTime);
 
   sunMesh.material.color.copy(daylight > 0.15 ? new THREE.Color(0xfff2c0) : new THREE.Color(0xdfe6ff));
 }
@@ -317,6 +319,11 @@ function drawMinimap() {
     const [x, y] = toMap(p.mesh.position.x, p.mesh.position.z);
     ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
   });
+  ctx.fillStyle = '#ff3344';
+  policeHelicopters.forEach(helicopter => {
+    const [x, y] = toMap(helicopter.position.x, helicopter.position.z);
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+  });
 
   // player (freccia verde al centro)
   const heading = mode === 'car' ? car.rotation.y : player.rotation.y;
@@ -347,8 +354,8 @@ function doArrest() {
   state.wanted = 0;
   policeCars.forEach(p => removePoliceUnit(p));
   policeCars = [];
-  car.position.set(0, 0, 0); car.rotation.y = 0; carSpeed = 0;
-  player.position.set(4, 0, 4); yaw = 0; pitch = 0.08;
+  car.position.copy(CAR_SPAWN); car.rotation.y = 0; carSpeed = 0;
+  player.position.copy(PLAYER_HOME); yaw = Math.PI; pitch = 0.08;
   mode = 'foot'; updatePlayerVisibility();
   document.getElementById('mode-badge').textContent = 'A PIEDI';
 
@@ -383,6 +390,7 @@ function animate() {
   updatePolice(dt);
   resolveVehicleCollisions(dt);
   updateVehicleDamageEffects(dt);
+  removeDestroyedVehicles();
   updateCoins(dt);
   updateBullets(dt);
   updateWantedDecay();
@@ -423,21 +431,25 @@ function exitToMenu() {
   window.location.reload();
 }
 
+function enterMobileFullscreen() {
+  const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 900;
+  if (!isMobile || document.fullscreenElement) return;
+  const root = document.documentElement;
+  const request = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (!request) return;
+  Promise.resolve(request.call(root)).then(() => {
+    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+  }).catch(() => {});
+}
+
 // ---------------------------------------------------------------------
 // START
 // ---------------------------------------------------------------------
 init();
 
 const startButton = document.getElementById('start-btn');
-const mobileUnsupported = window.matchMedia('(max-width: 760px)').matches;
-
-if (mobileUnsupported) {
-  startButton.disabled = true;
-  document.body.classList.add('mobile-unsupported');
-}
-
 startButton.addEventListener('click', () => {
-  if (mobileUnsupported) return;
+  enterMobileFullscreen();
   document.getElementById('start-overlay').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
   document.body.classList.add('playing');

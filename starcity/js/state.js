@@ -10,24 +10,28 @@ const VEHICLE_HALF_LENGTH = 2.2;
 
 let scene, camera, renderer, clock;
 let sun, sunMesh, hemi;
+let starField;
 let dayTime = 0.35; // 0..1 ciclo giorno/notte
 let running = false;
 let paused = false;
 
 // entità
 let car, carSpeed = 0, carSteer = 0;
+const PLAYER_BASE_MAX_SPEED = 34;
 let player;
 let mode = 'foot'; // 'foot' | 'car'
 
 // visuale / mira con il mouse
-let yaw = 0;           // rotazione orizzontale della visuale (e del personaggio a piedi)
+let yaw = Math.PI;     // rotazione orizzontale della visuale (e del personaggio a piedi)
 let pitch = 0.08;       // rotazione verticale della visuale
 let pointerLocked = false;
 let aiming = false;
+let touchMoveIntensity = 1;
 const MOUSE_SENS = 0.0022;
 const aimDir = new THREE.Vector3(0, 0, 1); // direzione di mira aggiornata ogni frame, usata per sparare
 let pedestrians = [];
 let policeCars = [];
+let policeHelicopters = [];
 let worldVehicles = []; // auto guidabili nel mondo (quella iniziale + quelle civili rubabili)
 let coins = [];
 let missionMarker = null;
@@ -74,7 +78,8 @@ const state = {
   wanted: 0,
 };
 
-const CAR_SPAWN = new THREE.Vector3(0, 0, 0);
+const PLAYER_HOME = new THREE.Vector3(-175, 0, -153);
+const CAR_SPAWN = new THREE.Vector3(-168, 0, -166);
 
 function initAudio() { GameAudio.initAudio(); }
 function playGunshot(weaponKey) { GameAudio.playGunshot(weaponKey); }

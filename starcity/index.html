@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Los Ricreados — Open World 3D</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <div id="game-container"></div>
+
+  <div id="start-overlay">
+    <div class="start-grid"></div>
+    <div class="start-noise"></div>
+    <main class="start-shell">
+      <section class="start-hero">
+        <div class="brand-lockup">
+          <img class="brand-logo" src="images/starcity.png" alt="Star City">
+        </div>
+        <div class="start-copy">
+          <button id="start-btn"><span>▶</span> INIZIA A GIOCARE</button>
+          <div id="desktop-only-note">DESKTOP REQUIRED // TASTIERA E MOUSE NECESSARI</div>
+          <div id="loading-note">Esperienza originale in browser con Three.js. Nessun asset o codice originale del gioco è stato usato.</div>
+        </div>
+      </section>
+    </main>
+    <section id="mobile-block" aria-label="Gioco non disponibile su mobile">
+      <img src="images/starcity.png" alt="Star City">
+      <div class="mobile-block-line"></div>
+      <h1>DESKTOP REQUIRED</h1>
+      <p>Star City richiede una tastiera e un mouse.<br>Apri il gioco da un computer per continuare.</p>
+    </section>
+  </div>
+
+  <div id="busted-overlay">
+    <h2 id="busted-title">BUSTED</h2>
+    <div style="opacity:0.8;margin-top:8px;">Hai perso metà dei tuoi contanti...</div>
+  </div>
+
+  <div id="pause-overlay" aria-label="Menu pausa">
+    <div class="pause-panel">
+      <div class="pause-kicker">STAR CITY // SYSTEM PAUSED</div>
+      <h2>PAUSA</h2>
+      <p>Il gioco e stato fermato.</p>
+      <div class="pause-actions">
+        <button id="resume-btn" type="button">RIPRENDI</button>
+        <button id="exit-btn" type="button">ESCI AL MENU</button>
+      </div>
+      <div class="pause-hint">Premi ESC per riprendere</div>
+    </div>
+  </div>
+
+  <div id="hud" style="display:none;">
+    <div id="top-left" class="hud-panel">
+      <div class="bar-row"><span class="bar-label">❤</span>
+        <div class="bar-bg">
+          <div class="bar-fill" id="health-fill" style="width:100%;"></div>
+        </div>
+      </div>
+      <div id="car-status">
+        <div class="car-status-label">AUTO <span id="car-health-pct">100%</span></div>
+        <div class="bar-bg">
+          <div class="bar-fill" id="car-health-fill" style="width:100%;"></div>
+        </div>
+        <div class="car-max-speed">VELOCITA MAX <strong id="car-max-speed">272 KM/H</strong></div>
+      </div>
+      <div id="weapon-wrap" class="hud-panel"><span id="weapon-label">Pistola</span><span id="ammo-label">12 / 12</span></div>
+    </div>
+
+    <div id="top-right" class="hud-panel">
+      <div id="money">$ 0</div>
+      <div id="stars">★★★★★</div>
+    </div>
+
+    <div id="mode-badge" class="hud-panel">A PIEDI</div>
+    <div id="mission-text"></div>
+    <div id="crosshair"></div>
+    <div id="lock-hint" class="hud-panel">Premi ESC per aprire il menu pausa e liberare il mouse</div>
+
+    <div id="minimap-wrap" class="hud-panel"><canvas id="minimap" width="170" height="170"></canvas></div>
+    <div id="speed-wrap" class="hud-panel" style="display:none;">
+      <div id="speed-val">0</div>
+      <div id="speed-unit">KM/H</div>
+    </div>
+    <div id="debug-panel" aria-label="Informazioni debug">
+      <div class="debug-title">DEBUG / LIVE</div>
+      <div id="debug-readout"></div>
+    </div>
+    <div id="toast"></div>
+    <div id="controls-hint">W/S/A/D muovi · Mouse guarda · Tasto destro mira · Tasto sinistro spara · E entra/esci/ruba
+      auto · 1-4 cambia arma</div>
+    <div id="scope-vignette"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/init.js"></script>
+  <script src="js/input-camera.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/vehicles.js"></script>
+  <script src="js/actors.js"></script>
+  <script src="js/police.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
+

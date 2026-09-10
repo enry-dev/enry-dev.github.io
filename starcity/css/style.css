@@ -107,6 +107,13 @@
       letter-spacing: 3px;
     }
 
+    #game-time {
+      margin-top: 6px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+    }
+
     .star-on {
       color: var(--neon-yellow);
       text-shadow: 0 0 6px var(--neon-yellow);
@@ -1183,6 +1190,11 @@
       #stars {
         font-size: 14px;
       }
+
+        #game-time {
+          margin-top: 4px;
+          font-size: 9px;
+        }
 
       #minimap-wrap {
         bottom: 18px;

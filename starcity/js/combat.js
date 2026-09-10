@@ -111,6 +111,7 @@ function tryHit(origin, dir, weapon) {
     const ped = pedestrians[i];
     const targetPos = ped.mesh.position.clone(); targetPos.y += 0.95;
     if (hitTest(origin, dir, targetPos, 0.62, maxRange)) {
+      spawnDeathAnimation(ped.mesh);
       scene.remove(ped.mesh);
       pedestrians.splice(i, 1);
       addWanted(weapon.pedWanted);
@@ -126,6 +127,7 @@ function tryHit(origin, dir, weapon) {
     v.userData.driverMesh.getWorldPosition(worldPos);
     worldPos.y += 1.2;
     if (hitTest(origin, dir, worldPos, 0.7, maxRange)) {
+      spawnDeathAnimation(v.userData.driverMesh);
       v.remove(v.userData.driverMesh);
       v.userData.hasDriver = false;
       v.userData.driverMesh = null;
@@ -143,6 +145,7 @@ function tryHit(origin, dir, weapon) {
       const off = unit.officers[oi];
       const offTarget = off.mesh.position.clone(); offTarget.y += 0.95;
       if (hitTest(origin, dir, offTarget, 0.62, maxRange)) {
+        spawnDeathAnimation(off.mesh);
         scene.remove(off.mesh);
         unit.officers.splice(oi, 1);
         addWanted(weapon.copWanted);

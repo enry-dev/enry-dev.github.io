@@ -1,5 +1,25 @@
 ﻿// UPDATE LOOP PIECES
 // ---------------------------------------------------------------------
+const daySkyColor = new THREE.Color(0x8ec9ff);
+const nightSkyColor = new THREE.Color(0x050515);
+const currentSkyColor = new THREE.Color();
+const nearbyHeadlightVehicles = [];
+// Numero di veicoli vicini che possono avere il faro "reale" (luce dinamica)
+// acceso contemporaneamente. Tenerlo basso (4-6) perché ogni luce attiva ha
+// un costo per-pixel; oltre le ~8-10 su hardware modesto si può ricominciare
+// a percepire lag. Le ombre restano disattivate apposta (vedi sotto).
+const MAX_ACTIVE_HEADLIGHTS = 5;
+let headlightsWarmed = false;
+
+// --- FIX LAG FARI NOTTURNI ---
+// Prima, il ricalcolo colore fari + distanza + sort veniva fatto per OGNI
+// veicolo, OGNI frame (fino a 60 volte al secondo). Ora:
+// 1) il colore dei fari (bulb) si aggiorna solo quando cambia giorno/notte
+// 2) la selezione dei veicoli vicini + il sort vengono throttlati
+let cachedIsNight = null;
+let headlightUpdateTimer = 0;
+const HEADLIGHT_UPDATE_INTERVAL = 0.15; // ricalcola ~6-7 volte al secondo invece di 60
+
 function updateCar(dt) {
   const baseAccel = 14, baseReverseMax = -12, friction = 0.98, baseBrakeForce = 22, turnRate = 1.9;
 
@@ -55,6 +75,7 @@ function updateCar(dt) {
   if (Math.abs(carSpeed) > 6) {
     for (let i = pedestrians.length - 1; i >= 0; i--) {
       if (dist2D(car.position, pedestrians[i].mesh.position) < 1.45) {
+        spawnDeathAnimation(pedestrians[i].mesh);
         scene.remove(pedestrians[i].mesh);
         pedestrians.splice(i, 1);
         addWanted(1);
@@ -192,6 +213,10 @@ function updateHUD() {
     starsHTML += `<span class="${i < state.wanted ? 'star-on' : 'star-off'}">★</span>`;
   }
   document.getElementById('stars').innerHTML = starsHTML;
+  const gameMinutes = Math.floor(((dayTime * 24 + 6) % 24) * 60);
+  const gameHours = Math.floor(gameMinutes / 60);
+  const minutePart = gameMinutes % 60;
+  document.getElementById('game-time').textContent = `${String(gameHours).padStart(2, '0')}:${String(minutePart).padStart(2, '0')}`;
   updateAmmoHUD();
 
   const speedWrap = document.getElementById('speed-wrap');
@@ -259,7 +284,7 @@ function showToast(msg) {
 }
 
 function updateDayNight(dt) {
-  dayTime += dt * 0.01; // ciclo lento
+  dayTime += dt * 0.004; // ciclo giorno/notte rallentato
   if (dayTime > 1) dayTime -= 1;
   const angle = dayTime * Math.PI * 2;
   const radius = 300;
@@ -271,14 +296,75 @@ function updateDayNight(dt) {
   sun.intensity = 0.15 + daylight * 1.1;
   hemi.intensity = 0.25 + daylight * 0.5;
 
-  const dayColor = new THREE.Color(0x8ec9ff);
-  const nightColor = new THREE.Color(0x050515);
-  const skyColor = nightColor.clone().lerp(dayColor, daylight);
-  scene.background = skyColor;
-  scene.fog = new THREE.Fog(skyColor.getHex(), 60, 320);
+  currentSkyColor.copy(nightSkyColor).lerp(daySkyColor, daylight);
+  scene.background = currentSkyColor;
+  if (!scene.fog) scene.fog = new THREE.Fog(currentSkyColor, 60, 320);
+  else scene.fog.color.copy(currentSkyColor);
   updateStarField(daylight, clock.elapsedTime);
 
-  sunMesh.material.color.copy(daylight > 0.15 ? new THREE.Color(0xfff2c0) : new THREE.Color(0xdfe6ff));
+  // --- FIX LAG FARI ---
+  // headlightIntensity si aggiorna comunque ogni frame (per transizione fluida),
+  // ma il resto (colore bulb, distanza, sort) è throttlato/condizionato.
+  const headlightIntensity = Math.max(0, 1 - daylight * 3.2) * 1.8;
+  const lightTarget = mode === 'car' ? car.position : player.position;
+
+  const isNight = daylight < 0.35;
+  const bulbColorNeedsUpdate = cachedIsNight !== isNight;
+  if (bulbColorNeedsUpdate) cachedIsNight = isNight;
+
+  headlightUpdateTimer += dt;
+  const shouldRecomputeHeadlights = headlightUpdateTimer >= HEADLIGHT_UPDATE_INTERVAL || bulbColorNeedsUpdate;
+  if (shouldRecomputeHeadlights) headlightUpdateTimer = 0;
+
+  if (shouldRecomputeHeadlights) nearbyHeadlightVehicles.length = 0;
+
+  function processVehicleHeadlight(vehicle) {
+    // il colore del vetro/lampadina cambia solo al passaggio giorno<->notte,
+    // non 60 volte al secondo
+    if (bulbColorNeedsUpdate) {
+      vehicle.userData.headlightBulbs?.forEach(bulb => {
+        bulb.material.color.setHex(isNight ? 0xfff7cc : 0x77736a);
+      });
+    }
+    if (vehicle.userData.headlight) {
+      vehicle.userData.headlight.intensity = headlightIntensity;
+      if (shouldRecomputeHeadlights) {
+        vehicle.userData.headlight.visible = false;
+        if (headlightIntensity > 0.01 && dist2D(vehicle.position, lightTarget) < 85) {
+          nearbyHeadlightVehicles.push(vehicle);
+        }
+      }
+    }
+  }
+
+  worldVehicles.forEach(processVehicleHeadlight);
+  policeCars.forEach(unit => processVehicleHeadlight(unit.mesh));
+
+  if (shouldRecomputeHeadlights) {
+    nearbyHeadlightVehicles.sort((a, b) => {
+      if (a === car) return -1;
+      if (b === car) return 1;
+      return a.position.distanceToSquared(lightTarget) - b.position.distanceToSquared(lightTarget);
+    });
+    if (!headlightsWarmed) {
+      let warmed = 0;
+      worldVehicles.forEach(vehicle => {
+        if (warmed < MAX_ACTIVE_HEADLIGHTS && vehicle.userData.headlight) {
+          vehicle.userData.headlight.visible = true;
+          vehicle.userData.headlight.castShadow = false; // le ombre sono il costo vero, mai attivarle qui
+          warmed++;
+        }
+      });
+      headlightsWarmed = true;
+    }
+    for (let i = 0; i < Math.min(MAX_ACTIVE_HEADLIGHTS, nearbyHeadlightVehicles.length); i++) {
+      const activeLight = nearbyHeadlightVehicles[i].userData.headlight;
+      activeLight.visible = true;
+      activeLight.castShadow = false; // sicurezza: con più luci attive insieme, le ombre farebbero laggare
+    }
+  }
+
+  sunMesh.material.color.setHex(daylight > 0.15 ? 0xfff2c0 : 0xdfe6ff);
 }
 
 function drawMinimap() {
@@ -388,6 +474,8 @@ function animate() {
   updateTraffic(dt);
   updatePedestrians(dt);
   updatePolice(dt);
+  updatePoliceHelicopters(dt);
+  updateDeathAnimations(dt);
   resolveVehicleCollisions(dt);
   updateVehicleDamageEffects(dt);
   removeDestroyedVehicles();
@@ -418,8 +506,9 @@ function togglePause(forceState) {
     document.getElementById('scope-vignette').classList.remove('active');
     updatePlayerVisibility();
   } else {
-    if (renderer && document.pointerLockElement !== renderer.domElement) {
-      renderer.domElement.requestPointerLock();
+    if (renderer && document.pointerLockElement !== renderer.domElement && renderer.domElement.requestPointerLock) {
+      const lockRequest = renderer.domElement.requestPointerLock();
+      if (lockRequest && lockRequest.catch) lockRequest.catch(() => {});
     }
   }
 }
@@ -453,6 +542,8 @@ startButton.addEventListener('click', () => {
   document.getElementById('start-overlay').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
   document.body.classList.add('playing');
+  updateDayNight(0);
+  renderer.render(scene, camera);
   running = true;
   paused = false;
   initAudio();
@@ -463,10 +554,10 @@ startButton.addEventListener('click', () => {
   }, 4000);
 });
 
-document.getElementById('resume-btn').addEventListener('click', () => {
+document.getElementById('resume-btn').addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
   togglePause(false);
 });
 
 document.getElementById('exit-btn').addEventListener('click', exitToMenu);
-
-

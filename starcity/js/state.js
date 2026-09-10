@@ -7,6 +7,7 @@ const CITY_HALF = (BLOCKS * BLOCK_SIZE) / 2;
 const MAX_STARS = 5;
 const VEHICLE_HALF_WIDTH = 1.1;
 const VEHICLE_HALF_LENGTH = 2.2;
+const POLICE_BASE_MAX_SPEED = 28;
 
 let scene, camera, renderer, clock;
 let sun, sunMesh, hemi;
@@ -36,6 +37,7 @@ let worldVehicles = []; // auto guidabili nel mondo (quella iniziale + quelle ci
 let coins = [];
 let missionMarker = null;
 let bullets = []; // effetti visivi proiettile (linee brevi)
+let deathAnimations = [];
 let buildingsAABB = [];
 
 const keys = {};
@@ -90,7 +92,7 @@ function playReloadCompleteSound() { GameAudio.playReloadCompleteSound(); }
 function playEmptyAmmoSound() { GameAudio.playEmptyAmmoSound(); }
 function playWeaponSwitchSound() { GameAudio.playWeaponSwitchSound(); }
 function updateSiren(dt) {
-  GameAudio.updateSiren(dt, {policeCars, mode, car, player, dist2D});
+  GameAudio.updateSiren(dt, {policeCars, policeHelicopters, mode, car, player, dist2D});
 }
 
 // ---------------------------------------------------------------------

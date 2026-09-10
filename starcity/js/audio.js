@@ -4,6 +4,7 @@
       // ---------------------------------------------------------------------
       let audioCtx = null;
       let sirenOsc = null, sirenLfo = null, sirenGain = null;
+      let rotorOsc = null, rotorLfo = null, rotorGain = null;
 
       function initAudio() {
         if (audioCtx) return;
@@ -28,6 +29,24 @@
         sirenOsc.connect(sirenGain).connect(audioCtx.destination);
         sirenOsc.start();
         sirenLfo.start();
+
+        rotorOsc = audioCtx.createOscillator();
+        rotorOsc.type = 'sawtooth';
+        rotorOsc.frequency.value = 82;
+        rotorLfo = audioCtx.createOscillator();
+        rotorLfo.type = 'sine';
+        rotorLfo.frequency.value = 7.5;
+        const rotorMod = audioCtx.createGain();
+        rotorMod.gain.value = 18;
+        rotorLfo.connect(rotorMod).connect(rotorOsc.frequency);
+        rotorGain = audioCtx.createGain();
+        rotorGain.gain.value = 0;
+        const rotorFilter = audioCtx.createBiquadFilter();
+        rotorFilter.type = 'lowpass';
+        rotorFilter.frequency.value = 420;
+        rotorOsc.connect(rotorFilter).connect(rotorGain).connect(audioCtx.destination);
+        rotorOsc.start();
+        rotorLfo.start();
       }
 
       function playGunshot(weaponKey) {
@@ -181,12 +200,14 @@
       }
 
       function updateSiren(dt, context) {
-        if (!sirenGain || !audioCtx) return;
+        if (!sirenGain || !rotorGain || !audioCtx) return;
 
         // le unità in perlustrazione hanno la sirena spenta: contano solo quelle attive
         const activeUnits = context.policeCars.filter(p => p.state !== 'patrol');
-        if (activeUnits.length === 0) {
+        const helicopters = context.policeHelicopters || [];
+        if (activeUnits.length === 0 && helicopters.length === 0) {
           sirenGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+          rotorGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
           return;
         }
 
@@ -197,19 +218,24 @@
           minDist = Math.min(minDist, context.dist2D(target, p.mesh.position));
           p.officers.forEach(o => minDist = Math.min(minDist, context.dist2D(target, o.mesh.position)));
         });
+        helicopters.forEach(helicopter => {
+          minDist = Math.min(minDist, context.dist2D(target, helicopter.position));
+        });
 
         const closeDist = 10;   // sotto questa distanza: volume massimo
-        const maxHearDist = 75; // oltre questa distanza: non si sente niente
+        const maxHearDist = helicopters.length > 0 ? 140 : 75;
 
         let vol;
-        if (minDist <= closeDist) vol = 0.22;
+        if (minDist <= closeDist) vol = helicopters.length > 0 ? 0.34 : 0.22;
         else if (minDist >= maxHearDist) vol = 0;
         else {
           const t = 1 - (minDist - closeDist) / (maxHearDist - closeDist);
-          vol = 0.22 * t * t; // curva morbida: sale piano da lontano, forte da vicino
+          vol = (helicopters.length > 0 ? 0.3 : 0.22) * t * t; // curva morbida
         }
 
         sirenGain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.25);
+        const rotorVol = helicopters.length > 0 ? Math.max(0.08, Math.min(0.3, vol * 1.15)) : 0;
+        rotorGain.gain.linearRampToValueAtTime(rotorVol, audioCtx.currentTime + 0.2);
       }
 
       function resume() {

@@ -45,6 +45,27 @@ function getNearSide(vehicle, worldPos) {
   return local.x < 0 ? 'left' : 'right';
 }
 
+function addVehicleHeadlights(vehicle) {
+  const bulbMaterial = new THREE.MeshBasicMaterial({color: 0xfff7cc});
+  vehicle.userData.headlightBulbs = [];
+  const bulbPositions = [[-0.7, 0.75, 2.15], [0.7, 0.75, 2.15]];
+  bulbPositions.forEach(position => {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), bulbMaterial.clone());
+    bulb.position.set(position[0], position[1], position[2]);
+    vehicle.add(bulb);
+    vehicle.userData.headlightBulbs.push(bulb);
+  });
+
+  const beam = new THREE.SpotLight(0xfff0c2, 0, 26, Math.PI / 4, 0.85, 1.3);
+  beam.position.set(0, 0.82, 2.05);
+  beam.castShadow = false;
+  const target = new THREE.Object3D();
+  target.position.set(0, 0.1, 18);
+  vehicle.add(beam, target);
+  beam.target = target;
+  vehicle.userData.headlight = beam;
+}
+
 // ---------------------------------------------------------------------
 // VEICOLI (auto guidabili: quella del giocatore + quelle civili rubabili)
 // ---------------------------------------------------------------------
@@ -76,12 +97,7 @@ function buildVehicle(colorHex) {
   });
 
   // fari
-  const lightMat = new THREE.MeshBasicMaterial({color: 0xfff7cc});
-  [[-0.7, 0.75, 2.15], [0.7, 0.75, 2.15]].forEach(p => {
-    const l = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lightMat);
-    l.position.set(p[0], p[1], p[2]);
-    group.add(l);
-  });
+  addVehicleHeadlights(group);
 
   // portiere
   const doors = createDoors(bw, bh, bl, new THREE.Color(colorHex).multiplyScalar(0.92).getHex());
@@ -202,7 +218,7 @@ function removeDestroyedVehicles() {
 }
 
 function updateVehicleDamageEffects(dt) {
-  worldVehicles.concat(policeCars.map(p => p.mesh)).forEach(vehicle => {
+  const updateEffects = vehicle => {
     const effects = vehicle.userData.breakEffects;
     if (!effects) return;
     const time = clock.elapsedTime;
@@ -218,12 +234,19 @@ function updateVehicleDamageEffects(dt) {
       spark.rotation.x += dt * (4 + index);
       spark.rotation.z += dt * 3;
     });
-  });
+  };
+  worldVehicles.forEach(updateEffects);
+  policeCars.forEach(unit => updateEffects(unit.mesh));
 }
 
 function buildCar() {
   car = buildVehicle(0xdd2b2b);
-  car.position.copy(CAR_SPAWN);
+  const spawn = findSafeVehiclePosition(car, attempt => {
+    const angle = attempt * 0.7;
+    const distance = attempt === 0 ? 0 : 4 + Math.floor(attempt / 8) * 2;
+    return {x: CAR_SPAWN.x + Math.cos(angle) * distance, z: CAR_SPAWN.z + Math.sin(angle) * distance, rot: 0};
+  }, 80);
+  if (spawn) car.position.set(spawn.x, 0, spawn.z);
   car.position.y = 0;
   worldVehicles.push(car);
 }
@@ -340,7 +363,11 @@ function spawnCivilianCars(n) {
   for (let i = 0; i < n; i++) {
     const color = palette[Math.floor(Math.random() * palette.length)];
     const v = buildVehicle(color);
-    const spot = randomParkingSpot();
+    const spot = findSafeVehiclePosition(v, randomParkingSpot);
+    if (!spot) {
+      scene.remove(v);
+      continue;
+    }
     v.position.set(spot.x, 0, spot.z);
     v.rotation.y = spot.rot;
 
@@ -353,7 +380,7 @@ function spawnCivilianCars(n) {
     // traffico: l'auto gira per la città finché ha un autista vivo a bordo
     v.userData.trafficAxis = spot.rot === 0 ? 'vertical' : 'horizontal';
     v.userData.waypoint = randomTrafficWaypoint(v);
-    v.userData.driveSpeed = 5 + Math.random() * 4;
+    v.userData.driveSpeed = 11 + Math.random() * 7;
 
     worldVehicles.push(v);
   }
@@ -379,10 +406,9 @@ function updateTraffic(dt) {
 
     const mv = slideMove(v.position.x, v.position.z, Math.sin(v.rotation.y) * v.userData.driveSpeed * vehicleSpeedMult(v) * dt, Math.cos(v.rotation.y) * v.userData.driveSpeed * vehicleSpeedMult(v) * dt, 1.6, v);
     v.position.x = mv.x; v.position.z = mv.z;
-    if (mv.blocked) registerBuildingImpact(v, v.userData.driveSpeed * vehicleSpeedMult(v));
     if (mv.blocked) {
       v.userData.waypoint = randomTrafficWaypoint(v);
-      v.rotation.y += Math.PI / 2;
+      v.rotation.y += (Math.random() < 0.5 ? 1 : -1) * Math.PI / 2;
     }
     v.userData.wheels.forEach(w => w.rotation.x -= v.userData.driveSpeed * dt * 2);
   }

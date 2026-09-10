@@ -44,6 +44,41 @@ function collidesBuildingForVehicle(vehicle, x, z) {
   return false;
 }
 
+function vehiclePositionIsOccupied(vehicle, x, z) {
+  const originalX = vehicle.position.x;
+  const originalZ = vehicle.position.z;
+  vehicle.position.set(x, vehicle.position.y, z);
+  const bodies = [...worldVehicles, ...policeCars.map(unit => unit.mesh)];
+  const occupied = bodies.some(other => other !== vehicle && getVehicleOverlap(vehicle, other));
+  vehicle.position.set(originalX, vehicle.position.y, originalZ);
+  return occupied;
+}
+
+function findSafeVehiclePosition(vehicle, candidateFactory, attempts = 60) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const candidate = candidateFactory(attempt);
+    if (candidate.rot !== undefined) vehicle.rotation.y = candidate.rot;
+    if (collidesBuildingForVehicle(vehicle, candidate.x, candidate.z)) continue;
+    if (vehiclePositionIsOccupied(vehicle, candidate.x, candidate.z)) continue;
+    return candidate;
+  }
+  return null;
+}
+
+function recoverVehicleFromBuilding(vehicle) {
+  if (!collidesBuildingForVehicle(vehicle, vehicle.position.x, vehicle.position.z)) return;
+  const origin = {x: vehicle.position.x, z: vehicle.position.z};
+  const safe = findSafeVehiclePosition(vehicle, attempt => {
+    const directionCount = 24;
+    const angle = (attempt % directionCount) * (Math.PI * 2 / directionCount);
+    const distance = 0.15 + Math.floor(attempt / directionCount) * 0.15;
+    return {x: origin.x + Math.cos(angle) * distance, z: origin.z + Math.sin(angle) * distance};
+  }, 240);
+  if (safe) vehicle.position.set(safe.x, vehicle.position.y, safe.z);
+  vehicle.userData.vx = 0;
+  vehicle.userData.vz = 0;
+}
+
 function slideMove(px, pz, dx, dz, margin, vehicle = null) {
   const collides = (x, z) => vehicle ? collidesBuildingForVehicle(vehicle, x, z) : collidesBuilding(x, z, margin);
   const nx = px + dx, nz = pz + dz;
@@ -54,22 +89,24 @@ function slideMove(px, pz, dx, dz, margin, vehicle = null) {
 }
 
 // ---------------------------------------------------------------------
-// RALLENTAMENTO DA SCONTRO — ogni urto fra 2 veicoli riduce del 10% sia la
-// velocità attuale che la velocità massima (in modo permanente e cumulativo)
+// RALLENTAMENTO DA SCONTRO — il 20% degli urti danneggia il veicolo e riduce
+// del 10% sia la velocità attuale che quella massima, in modo cumulativo.
 // ---------------------------------------------------------------------
 const MIN_SPEED_MULT = 0.15; // non scende mai sotto il 15% della velocità originale
+const VEHICLE_DAMAGE_CHANCE = 0.2;
 const VEHICLE_CRASH_SOUND_COOLDOWN = 0.45;
 let lastVehicleCrashSound = -Infinity;
+const collisionBodies = [];
 
-// registra un urto per il veicolo v: riduce del 10% il suo tetto di velocità massima,
-// in modo permanente e cumulativo (0.9 -> 0.81 -> 0.729 ...), con un piccolo
-// tempo di "immunità" per non contare come tanti scontri lo stesso urto prolungato
+// Registra un singolo evento d'urto. Il cooldown vale anche se l'urto non
+// danneggia il veicolo, evitando più tentativi nello stesso impatto prolungato.
 function registerVehicleCollision(v) {
   if (!v || !v.userData) return false;
   if (v.userData.isWrecked) return false;
   if (v.userData.collisionCooldown > 0) return false;
-  v.userData.speedMult = Math.max(MIN_SPEED_MULT, v.userData.speedMult * 0.9);
   v.userData.collisionCooldown = 0.8;
+  if (Math.random() >= VEHICLE_DAMAGE_CHANCE) return false;
+  v.userData.speedMult = Math.max(MIN_SPEED_MULT, v.userData.speedMult * 0.9);
   if (v.userData.speedMult <= 0.25) breakVehicle(v);
   return true;
 }
@@ -166,12 +203,16 @@ function getVehicleMass(v) {
 // compenetrano e applica un rimbalzo fisico (knockback) in base alla massa
 // e alla velocità d'impatto, con danno/suono se coinvolto il giocatore
 function resolveVehicleCollisions(dt) {
-  const bodies = worldVehicles.concat(policeCars.map(p => p.mesh));
+  collisionBodies.length = 0;
+  worldVehicles.forEach(vehicle => collisionBodies.push(vehicle));
+  policeCars.forEach(p => collisionBodies.push(p.mesh));
+  const bodies = collisionBodies;
 
   for (let i = 0; i < bodies.length; i++) {
     const a = bodies[i];
     for (let j = i + 1; j < bodies.length; j++) {
       const b = bodies[j];
+      if (a !== car && b !== car) continue;
       const collision = getVehicleOverlap(a, b);
       if (!collision) continue;
       const {nx, nz, overlap} = collision;
@@ -232,6 +273,7 @@ function resolveVehicleCollisions(dt) {
     } else {
       v.userData.vx = 0; v.userData.vz = 0;
     }
+    recoverVehicleFromBuilding(v);
   }
 }
 

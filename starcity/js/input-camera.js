@@ -17,7 +17,10 @@ function setupMouseLook() {
       document.getElementById('scope-vignette').classList.remove('active');
       updatePlayerVisibility();
     }
-    if (hadPointerLock && !pointerLocked && running && !paused) togglePause(true);
+    if (hadPointerLock && !pointerLocked && running && !paused) {
+      hadPointerLock = false;
+      togglePause(true);
+    }
     hadPointerLock = pointerLocked;
   });
 
@@ -38,6 +41,7 @@ function setupMouseLook() {
 
   document.addEventListener('mousedown', e => {
     if (!running) return;
+    if (e.target.closest('#pause-overlay')) return;
     if (e.button !== 0 && e.button !== 2) return;
 
     if (document.pointerLockElement !== canvas) {

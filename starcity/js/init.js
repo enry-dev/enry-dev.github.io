@@ -61,6 +61,10 @@ function init() {
   setupTouchControls();
 
   animate();
+
+  window.editorScene = scene;
+  window.editorCamera = camera;
+  window.editorRenderer = renderer;
 }
 
 // ---------------------------------------------------------------------

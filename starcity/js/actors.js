@@ -89,6 +89,74 @@ function animateHumanoid(group, movement, dt) {
   }
 }
 
+function spawnDeathAnimation(character) {
+  scene.updateMatrixWorld(true);
+  const fragments = [];
+
+  character.traverse(part => {
+    if (!part.isMesh || !part.geometry) return;
+
+    const material = Array.isArray(part.material)
+      ? part.material.map(mat => mat.clone())
+      : part.material.clone();
+    const fragment = new THREE.Mesh(part.geometry, material);
+    const worldPosition = new THREE.Vector3();
+    const worldQuaternion = new THREE.Quaternion();
+    const worldScale = new THREE.Vector3();
+    part.getWorldPosition(worldPosition);
+    part.getWorldQuaternion(worldQuaternion);
+    part.getWorldScale(worldScale);
+    fragment.position.copy(worldPosition);
+    fragment.quaternion.copy(worldQuaternion);
+    fragment.scale.copy(worldScale);
+    fragment.castShadow = true;
+
+    const materials = Array.isArray(fragment.material) ? fragment.material : [fragment.material];
+    materials.forEach(mat => {
+      mat.transparent = true;
+      mat.depthWrite = false;
+    });
+
+    const outward = new THREE.Vector3(
+      (worldPosition.x - character.position.x) * 0.45 + (Math.random() - 0.5),
+      0,
+      (worldPosition.z - character.position.z) * 0.45 + (Math.random() - 0.5)
+    ).normalize();
+    fragments.push({
+      mesh: fragment,
+      velocity: new THREE.Vector3(outward.x * (1.5 + Math.random() * 2.5), 4 + Math.random() * 3, outward.z * (1.5 + Math.random() * 2.5)),
+      spin: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10)
+    });
+    scene.add(fragment);
+  });
+
+  deathAnimations.push({fragments, age: 0, duration: 1.45});
+}
+
+function updateDeathAnimations(dt) {
+  for (let i = deathAnimations.length - 1; i >= 0; i--) {
+    const animation = deathAnimations[i];
+    animation.age += dt;
+    const fade = Math.max(0, 1 - Math.max(0, animation.age - 0.8) / 0.65);
+
+    animation.fragments.forEach(fragment => {
+      fragment.velocity.y -= 13 * dt;
+      fragment.mesh.position.addScaledVector(fragment.velocity, dt);
+      fragment.mesh.position.y = Math.max(0.06, fragment.mesh.position.y);
+      fragment.mesh.rotation.x += fragment.spin.x * dt;
+      fragment.mesh.rotation.y += fragment.spin.y * dt;
+      fragment.mesh.rotation.z += fragment.spin.z * dt;
+      const materials = Array.isArray(fragment.mesh.material) ? fragment.mesh.material : [fragment.mesh.material];
+      materials.forEach(mat => {mat.opacity = fade;});
+    });
+
+    if (animation.age >= animation.duration) {
+      animation.fragments.forEach(fragment => scene.remove(fragment.mesh));
+      deathAnimations.splice(i, 1);
+    }
+  }
+}
+
 function spawnPedestrians(n) {
   const colors = [0xffa500, 0x66cc66, 0xcc6699, 0xffffff, 0x999999, 0x00cccc];
   for (let i = 0; i < n; i++) {

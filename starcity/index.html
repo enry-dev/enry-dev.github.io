@@ -33,7 +33,7 @@
         </div>
       </section>
     </main>
-    <div class="version-label">BETA 0.2 (10/09/2026)</div>
+    <div class="version-label">BETA 0.3 (12/09/2026)</div>
   </div>
 
   <div id="busted-overlay">
@@ -46,13 +46,20 @@
       <div class="pause-kicker">STAR CITY // SYSTEM PAUSED</div>
       <h2>PAUSA</h2>
       <p>Il gioco e stato fermato.</p>
+      <div class="pause-sensitivity">
+        <label for="touch-sensitivity-range">SENSIBILITÀ MOVIMENTO</label>
+        <div class="sensitivity-row">
+          <input id="touch-sensitivity-range" type="range" min="0.5" max="1.8" step="0.05" value="1" aria-label="Sensibilità movimento">
+          <span id="touch-sensitivity-value">1.0x</span>
+        </div>
+      </div>
       <div class="pause-actions">
         <button id="resume-btn" type="button">RIPRENDI</button>
         <button id="exit-btn" type="button">ESCI AL MENU</button>
       </div>
       <div class="pause-hint">Premi ESC per riprendere</div>
     </div>
-    <div class="version-label">BETA 0.2 (10/09/2026)</div>
+    <div class="version-label">BETA 0.3 (12/09/2026)</div>
   </div>
 
   <div id="hud" style="display:none;">
@@ -79,16 +86,18 @@
     </div>
 
     <div id="mode-badge" class="hud-panel">A PIEDI</div>
+    <button id="pause-button" class="hud-panel" type="button" aria-label="Pausa il gioco">PAUSA</button>
     <div id="mission-text"></div>
     <div id="crosshair"></div>
     <div id="lock-hint" class="hud-panel">Premi ESC per aprire il menu pausa e liberare il mouse</div>
 
     <div id="minimap-wrap" class="hud-panel"><canvas id="minimap" width="170" height="170"></canvas></div>
     <div id="speed-wrap" class="hud-panel" style="display:none;">
+      <div class="speed-gauge" aria-hidden="true"><div id="speed-gauge-fill"></div></div>
       <div id="speed-val">0</div>
       <div id="speed-unit">KM/H</div>
     </div>
-    <div class="version-label">BETA 0.2 (10/09/2026)</div>
+    <div class="version-label">BETA 0.3 (12/09/2026)</div>
     <div id="debug-panel" aria-label="Informazioni debug">
       <div class="debug-title">DEBUG / LIVE</div>
       <div id="debug-readout"></div>
@@ -117,7 +126,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/state.js"></script>
-  <script src="js/init.js"></script>
   <script src="js/input-camera.js"></script>
   <script src="js/world.js"></script>
   <script src="js/vehicles.js"></script>
@@ -125,6 +133,7 @@
   <script src="js/police.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/physics.js"></script>
+  <script src="js/init.js"></script>
   <script src="js/main.js"></script>
 </body>
 

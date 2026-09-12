@@ -158,6 +158,14 @@ function tryHit(origin, dir, weapon) {
     if (hitSomething) return;
     const carTarget = unit.mesh.position.clone(); carTarget.y += 0.8;
     if (hitTest(origin, dir, carTarget, 2.4, maxRange)) {
+      if (unit.state === 'patrol') {
+        unit.state = 'chasing';
+        unit.exitTimer = 0;
+        addWanted(1);
+        showToast('Volante attivata! +1 stella');
+        return;
+      }
+
       // l'auto della polizia è blindata: il colpo viene assorbito, non si distrugge sparandole.
       // va eliminata uccidendo gli agenti quando scendono per arrestarti.
       const now = clock.elapsedTime;

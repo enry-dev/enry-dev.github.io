@@ -9,7 +9,29 @@ const nearbyHeadlightVehicles = [];
 // un costo per-pixel; oltre le ~8-10 su hardware modesto si può ricominciare
 // a percepire lag. Le ombre restano disattivate apposta (vedi sotto).
 const MAX_ACTIVE_HEADLIGHTS = 5;
+const LOW_PERF_MOBILE = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 900;
 let headlightsWarmed = false;
+
+function getVehicleDisplaySpeedFactor(vehicleType) {
+  if (vehicleType === 'supercar') return 280 / 52;
+  if (vehicleType === 'closedTruck' || vehicleType === 'truck') return 80 / 15;
+  if (vehicleType === 'police') return 120 / 22;
+  return 130 / 24;
+}
+
+function getDisplayedSpeedKmh(speedValue, vehicleType) {
+  const v = Math.abs(speedValue);
+  return Math.round(v * getVehicleDisplaySpeedFactor(vehicleType));
+}
+
+function getVehicleDisplayMaxKmh(vehicle) {
+  if (!vehicle || !vehicle.userData) return 130;
+  const vehicleType = vehicle.userData.vehicleType || 'standard';
+  if (vehicleType === 'supercar') return 280;
+  if (vehicleType === 'closedTruck' || vehicle.userData.isTruck) return 80;
+  if (vehicle.userData.isPolice) return 120;
+  return 130;
+}
 
 // --- FIX LAG FARI NOTTURNI ---
 // Prima, il ricalcolo colore fari + distanza + sort veniva fatto per OGNI
@@ -21,7 +43,7 @@ let headlightUpdateTimer = 0;
 const HEADLIGHT_UPDATE_INTERVAL = 0.15; // ricalcola ~6-7 volte al secondo invece di 60
 
 function updateCar(dt) {
-  const baseAccel = 14, baseReverseMax = -12, friction = 0.98, baseBrakeForce = 22, turnRate = 1.9;
+  const defaultAccel = 14, defaultReverseMax = -12, friction = 0.98, baseBrakeForce = 22, turnRate = 1.9;
 
   if (car.userData.isWrecked) {
     carSpeed = 0;
@@ -29,12 +51,20 @@ function updateCar(dt) {
     return;
   }
 
+  const vehicleType = car.userData.vehicleType || 'standard';
+  const isTruck = vehicleType === 'closedTruck' || car.userData.isTruck;
+  const isSupercar = vehicleType === 'supercar';
+
+  const accelBase = isTruck ? 18 : isSupercar ? 42 : defaultAccel;
+  const reverseBase = isTruck ? -12 : isSupercar ? -28 : defaultReverseMax;
+  const maxBaseSpeed = isTruck ? PLAYER_TRUCK_MAX_SPEED : isSupercar ? PLAYER_SUPERCAR_MAX_SPEED : PLAYER_BASE_MAX_SPEED;
+
   // più la carrozzeria è ammaccata, più il motore rende poco: accelerazione,
   // velocità massima e retromarcia scendono tutte in base al danno accumulato
   const dmgFactor = vehicleSpeedMult(car);
-  const accel = baseAccel * dmgFactor;
-  const maxSpeed = PLAYER_BASE_MAX_SPEED * dmgFactor;
-  const reverseMax = baseReverseMax * dmgFactor;
+  const accel = accelBase * dmgFactor;
+  const maxSpeed = maxBaseSpeed * dmgFactor;
+  const reverseMax = reverseBase * dmgFactor;
   const brakeForce = baseBrakeForce;
 
   if (keys['w']) carSpeed += accel * touchMoveIntensity * dt;
@@ -85,7 +115,12 @@ function updateCar(dt) {
     }
   }
 
-  document.getElementById('speed-val').textContent = Math.round(Math.abs(carSpeed) * 8);
+  const speedKmh = getDisplayedSpeedKmh(carSpeed, vehicleType);
+  const speedGaugeFill = document.getElementById('speed-gauge-fill');
+  const capKmh = getVehicleDisplayMaxKmh(car);
+  const speedPct = Math.min(100, (speedKmh / Math.max(1, capKmh)) * 100);
+  if (speedGaugeFill) speedGaugeFill.style.width = speedPct + '%';
+  document.getElementById('speed-val').textContent = speedKmh;
 
   // missione: raggiungi il marker
   if (missionMarker && dist2D(car.position, missionMarker.position) < 3.5) {
@@ -124,6 +159,7 @@ function updateCoins(dt) {
     if (dist2D(target, c.position) < 2.2) {
       const val = 10 + Math.floor(Math.random() * 40);
       state.money += val;
+      playCoinPickupSound();
       respawnCoin(c);
       showToast('+ $' + val);
     }
@@ -225,7 +261,8 @@ function updateHUD() {
     speedWrap.style.display = 'block';
     carStatus.style.display = 'block';
     const pct = Math.max(0, vehicleSpeedMult(car) * 100);
-    const maxSpeed = Math.round(34 * vehicleSpeedMult(car) * 8);
+    const vehicleType = car.userData.vehicleType || 'standard';
+    const maxSpeed = getVehicleDisplayMaxKmh(car);
     document.getElementById('car-health-fill').style.width = pct + '%';
     document.getElementById('car-health-pct').textContent = Math.round(pct) + '%';
     document.getElementById('car-max-speed').textContent = maxSpeed + ' KM/H';
@@ -256,7 +293,7 @@ function updateDebugPanel() {
   const target = mode === 'car' ? car : player;
   const x = target ? target.position.x.toFixed(1) : '0.0';
   const z = target ? target.position.z.toFixed(1) : '0.0';
-  const speed = mode === 'car' ? Math.round(Math.abs(carSpeed) * 8) : 0;
+  const speed = mode === 'car' ? getDisplayedSpeedKmh(carSpeed, car.userData.vehicleType || 'standard') : 0;
   const heading = target ? Math.round(THREE.MathUtils.radToDeg(target.rotation.y)) : 0;
   const cameraFov = Math.round(camera.fov);
   const daylight = Math.round(Math.max(0, Math.sin(dayTime * Math.PI * 2)) * 100);
@@ -305,6 +342,23 @@ function updateDayNight(dt) {
   // --- FIX LAG FARI ---
   // headlightIntensity si aggiorna comunque ogni frame (per transizione fluida),
   // ma il resto (colore bulb, distanza, sort) è throttlato/condizionato.
+  if (LOW_PERF_MOBILE) {
+    worldVehicles.forEach(vehicle => {
+      if (vehicle.userData.headlight) {
+        vehicle.userData.headlight.visible = false;
+        vehicle.userData.headlight.intensity = 0;
+      }
+    });
+    policeCars.forEach(unit => {
+      if (unit.mesh.userData.headlight) {
+        unit.mesh.userData.headlight.visible = false;
+        unit.mesh.userData.headlight.intensity = 0;
+      }
+    });
+    sunMesh.material.color.setHex(daylight > 0.15 ? 0xfff2c0 : 0xdfe6ff);
+    return;
+  }
+
   const headlightIntensity = Math.max(0, 1 - daylight * 3.2) * 1.8;
   const lightTarget = mode === 'car' ? car.position : player.position;
 
@@ -491,12 +545,19 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+function syncPauseButton() {
+  const pauseButton = document.getElementById('pause-button');
+  if (!pauseButton) return;
+  pauseButton.textContent = paused ? 'RIPRENDI' : 'PAUSA';
+}
+
 function togglePause(forceState) {
   if (!running) return;
   paused = typeof forceState === 'boolean' ? forceState : !paused;
   const overlay = document.getElementById('pause-overlay');
   overlay.classList.toggle('visible', paused);
   document.body.classList.toggle('paused', paused);
+  syncPauseButton();
 
   if (paused) {
     aiming = false;
@@ -558,6 +619,12 @@ document.getElementById('resume-btn').addEventListener('click', e => {
   e.preventDefault();
   e.stopPropagation();
   togglePause(false);
+});
+
+document.getElementById('pause-button').addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  togglePause();
 });
 
 document.getElementById('exit-btn').addEventListener('click', exitToMenu);

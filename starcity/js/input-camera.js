@@ -4,8 +4,12 @@ function setupMouseLook() {
   const canvas = renderer.domElement;
   let hadPointerLock = false;
 
-  // il tasto destro serve per mirare: disabilita il menu contestuale del browser
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  // FIX #1: il contextmenu va bloccato su document, non solo sul canvas.
+  // Overlay come #crosshair e #scope-vignette stanno sopra il canvas al
+  // centro schermo (proprio dove miri col tasto destro): se il target del
+  // click e' l'overlay invece del canvas, il vecchio listener non scattava
+  // e il menu del browser si apriva nel bel mezzo dell'azione di mira.
+  document.addEventListener('contextmenu', e => e.preventDefault());
 
   document.addEventListener('pointerlockchange', () => {
     pointerLocked = (document.pointerLockElement === canvas);
@@ -17,8 +21,9 @@ function setupMouseLook() {
       document.getElementById('scope-vignette').classList.remove('active');
       updatePlayerVisibility();
     }
+    // FIX #2: rimossa la riga morta "hadPointerLock = false" (veniva
+    // comunque sovrascritta due righe sotto con lo stesso valore).
     if (hadPointerLock && !pointerLocked && running && !paused) {
-      hadPointerLock = false;
       togglePause(true);
     }
     hadPointerLock = pointerLocked;
@@ -78,38 +83,135 @@ function setupMouseLook() {
   });
 }
 
+function updateTouchSensitivityUI() {
+  const range = document.getElementById('touch-sensitivity-range');
+  const value = document.getElementById('touch-sensitivity-value');
+  if (!range || !value) return;
+  touchMoveSensitivity = Number(range.value);
+  value.textContent = `${touchMoveSensitivity.toFixed(1)}x`;
+}
+
+// FIX #3: costante di deadzone unica, condivisa tra il calcolo
+// dell'intensita' e la soglia di attivazione dei tasti direzionali.
+// Prima erano due valori "magici" (0.22 e 0.2) scollegati tra loro.
+const STICK_DEAD_ZONE = 0.22;
+
+// FIX #4: lo smoothing di touchMoveIntensity gira su un tick indipendente
+// basato su performance.now() (quindi su dt reale), invece che una volta
+// per ogni evento 'touchmove'. Prima la stessa manovra sul joystick
+// produceva accelerazioni diverse a seconda di quanti eventi touch
+// generava il browser/dispositivo. touchMoveTarget e' il valore "grezzo"
+// verso cui si tende; touchMoveIntensity converge ad esso ad una velocita'
+// costante nel tempo, sia in salita che in discesa.
+//
+// FIX #9 (regressione corretta): il tick NON deve partire automaticamente
+// a livello di file. Se parte subito e touchMoveTarget resta a 0 (nessun
+// evento touch su desktop), il loop trascina touchMoveIntensity verso 0
+// in circa un secondo, azzerando il movimento anche su desktop/tastiera.
+// Ora il tick si avvia solo dentro setupTouchControls (quando i controlli
+// touch esistono davvero) e il target parte dal valore GIA' presente in
+// touchMoveIntensity (tipicamente 1 su desktop), cosi' non lo altera
+// finche' non arriva un vero input touch.
+let touchMoveTarget = null;
+let lastStickTickTime = null;
+let stickSmoothingStarted = false;
+
+function tickStickSmoothing(now) {
+  if (lastStickTickTime === null) lastStickTickTime = now;
+  const dt = Math.min(0.05, (now - lastStickTickTime) / 1000);
+  lastStickTickTime = now;
+  const smoothingRate = 10; // convergenza al target in ~1/10 di secondo
+  touchMoveIntensity += (touchMoveTarget - touchMoveIntensity) * Math.min(1, dt * smoothingRate);
+  requestAnimationFrame(tickStickSmoothing);
+}
+
 function setupTouchControls() {
   const controls = document.getElementById('mobile-controls');
   const stick = document.getElementById('mobile-stick');
   const canvas = renderer.domElement;
   if (!controls || !stick) return;
 
+  // Il target parte allineato al valore corrente (di solito 1): niente
+  // decadimento finche' l'utente non tocca davvero lo stick o il d-pad.
+  if (touchMoveTarget === null) touchMoveTarget = touchMoveIntensity;
+  if (!stickSmoothingStarted) {
+    stickSmoothingStarted = true;
+    requestAnimationFrame(tickStickSmoothing);
+  }
+
+  const sensitivityRange = document.getElementById('touch-sensitivity-range');
+  if (sensitivityRange) {
+    sensitivityRange.addEventListener('input', () => updateTouchSensitivityUI());
+    updateTouchSensitivityUI();
+  }
+
   let stickTouchId = null;
   let cameraTouchId = null;
   let lastCameraX = 0;
   let lastCameraY = 0;
+
+  // FIX #5: i bottoni a croce (data-touch-key) impostavano solo keys[...]
+  // senza mai toccare touchMoveIntensity. Se lo stick analogico non era
+  // mai stato usato in quella sessione, touchMoveIntensity restava a 0 e
+  // i bottoni direzionali muovevano i tasti ma NON producevano movimento
+  // reale (in updateCar/updatePlayerFoot ogni spostamento e' moltiplicato
+  // per touchMoveIntensity). Ora teniamo un conteggio dei bottoni
+  // direzionali premuti e, se lo stick non e' attivo, forziamo il target
+  // a piena intensita'.
+  const movementKeys = new Set(['w', 'a', 's', 'd']);
+  let dpadMovementCount = 0;
+
   const setKey = (key, value) => {keys[key] = value;};
+
+  const isPointInsideStick = (touch, rect) => {
+    // FIX #6: hit-test circolare invece che rettangolare, coerente con la
+    // base visivamente rotonda dello stick (radius = rect.width * 0.38).
+    // Prima un tocco vicino agli angoli del quadrato ma fuori dal cerchio
+    // reale creava una piccola zona morta "invisibile".
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const radius = rect.width / 2;
+    const dx = touch.clientX - centerX;
+    const dy = touch.clientY - centerY;
+    return (dx * dx + dy * dy) <= radius * radius;
+  };
+
   const releaseStick = () => {
     stickTouchId = null;
-    touchMoveIntensity = 0;
+    // FIX (era #: reset istantaneo) -> ora si imposta solo il target,
+    // la discesa e' gestita dolcemente da tickStickSmoothing.
+    if (dpadMovementCount === 0) touchMoveTarget = 0;
     setKey('w', false); setKey('s', false); setKey('a', false); setKey('d', false);
     stick.querySelector('.mobile-stick-knob').style.transform = 'translate(-50%, -50%)';
   };
+
   const updateStick = touch => {
     const rect = stick.getBoundingClientRect();
-    const max = rect.width * 0.34;
-    const dx = touch.clientX - (rect.left + rect.width / 2);
-    const dy = touch.clientY - (rect.top + rect.height / 2);
-    const length = Math.min(max, Math.hypot(dx, dy));
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const dx = touch.clientX - centerX;
+    const dy = touch.clientY - centerY;
+    const radius = rect.width * 0.38;
+    const length = Math.min(Math.hypot(dx, dy), radius);
     const angle = Math.atan2(dy, dx);
     const x = Math.cos(angle) * length;
     const y = Math.sin(angle) * length;
-    const deadZone = 0.28;
-    const nx = length > max * deadZone ? x / max : 0;
-    const ny = length > max * deadZone ? y / max : 0;
-    touchMoveIntensity = Math.min(1, Math.max(0, (length / max - deadZone) / (1 - deadZone)) * 0.65);
-    setKey('a', nx < -0.25); setKey('d', nx > 0.25);
-    setKey('w', ny < -0.25); setKey('s', ny > 0.25);
+    const normalizedLen = Math.max(0, length / radius);
+    const nx = normalizedLen > STICK_DEAD_ZONE ? x / radius : 0;
+    const ny = normalizedLen > STICK_DEAD_ZONE ? y / radius : 0;
+
+    // FIX #7: rimosso il fattore "* 0.65" che tagliava la velocita'
+    // massima raggiungibile da touch al 65% rispetto a tastiera, anche
+    // con lo stick spinto completamente a fondo corsa. Ora a fondo corsa
+    // si arriva a intensita' 1 (moltiplicata solo dalla sensibilita'
+    // scelta dall'utente).
+    touchMoveTarget = Math.min(
+      1,
+      Math.max(0, (normalizedLen - STICK_DEAD_ZONE) / (1 - STICK_DEAD_ZONE)) * touchMoveSensitivity
+    );
+
+    setKey('a', nx < -0.2); setKey('d', nx > 0.2);
+    setKey('w', ny < -0.2); setKey('s', ny > 0.2);
     stick.querySelector('.mobile-stick-knob').style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
   };
 
@@ -134,6 +236,8 @@ function setupTouchControls() {
     e.preventDefault();
     if (cameraTouchId !== null) return;
     const touch = e.changedTouches[0];
+    const rect = stick.getBoundingClientRect();
+    if (isPointInsideStick(touch, rect)) return;
     cameraTouchId = touch.identifier;
     lastCameraX = touch.clientX;
     lastCameraY = touch.clientY;
@@ -142,11 +246,28 @@ function setupTouchControls() {
     e.preventDefault();
     const touch = [...e.changedTouches].find(t => t.identifier === cameraTouchId);
     if (!touch) return;
-    yaw -= (touch.clientX - lastCameraX) * MOUSE_SENS * 1.8;
-    pitch -= (touch.clientY - lastCameraY) * MOUSE_SENS * 1.8;
+    const rect = stick.getBoundingClientRect();
+    if (isPointInsideStick(touch, rect)) {
+      // FIX #8: il dito per la camera puo' attraversare la zona dello
+      // stick durante uno swipe veloce. Prima si usciva con un "return"
+      // senza aggiornare lastCameraX/Y: quando il dito riemergeva fuori
+      // dallo stick, il delta veniva calcolato rispetto a una posizione
+      // "congelata" da prima dell'attraversamento, causando uno scatto
+      // improvviso della visuale (camera snap). Ora la posizione di
+      // riferimento resta sincronizzata anche mentre si e' sopra lo stick.
+      lastCameraX = touch.clientX;
+      lastCameraY = touch.clientY;
+      return;
+    }
+    const dx = touch.clientX - lastCameraX;
+    const dy = touch.clientY - lastCameraY;
+    const lookSensitivity = mode === 'car' ? 0.0018 : 0.0014;
+    const smoothing = mode === 'car' ? 0.55 : 0.7;
+    yaw -= dx * lookSensitivity;
+    pitch -= dy * lookSensitivity;
     pitch = Math.max(-1.3, Math.min(1.3, pitch));
-    lastCameraX = touch.clientX;
-    lastCameraY = touch.clientY;
+    lastCameraX += dx * smoothing;
+    lastCameraY += dy * smoothing;
   }, {passive: false});
   const endCamera = e => {
     if ([...e.changedTouches].some(t => t.identifier === cameraTouchId)) cameraTouchId = null;
@@ -156,8 +277,25 @@ function setupTouchControls() {
 
   controls.querySelectorAll('[data-touch-key]').forEach(button => {
     const key = button.dataset.touchKey;
-    const press = e => {e.preventDefault(); setKey(key, true);};
-    const release = e => {e.preventDefault(); setKey(key, false);};
+    const press = e => {
+      e.preventDefault();
+      setKey(key, true);
+      // FIX #5 (continua): un tasto direzionale a croce deve poter
+      // muovere il player/veicolo anche se lo stick analogico non e'
+      // mai stato toccato in questa sessione.
+      if (movementKeys.has(key)) {
+        dpadMovementCount++;
+        touchMoveTarget = Math.max(touchMoveTarget, touchMoveSensitivity > 0 ? Math.min(1, touchMoveSensitivity) : 1);
+      }
+    };
+    const release = e => {
+      e.preventDefault();
+      setKey(key, false);
+      if (movementKeys.has(key)) {
+        dpadMovementCount = Math.max(0, dpadMovementCount - 1);
+        if (dpadMovementCount === 0 && stickTouchId === null) touchMoveTarget = 0;
+      }
+    };
     button.addEventListener('touchstart', press, {passive: false});
     button.addEventListener('touchend', release, {passive: false});
     button.addEventListener('touchcancel', release, {passive: false});

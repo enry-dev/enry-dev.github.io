@@ -624,11 +624,15 @@ function startPolicePatrol(unit) {
 }
 
 const POLICE_LEVELS = [
-  {maxUnits: 1, carSpeed: 26, turnRate: 2.2, officers: 1, officerSpeed: 2.4, stopDist: 10, fleeDist: 26, resumeDist: 16, recallDist: 46},
-  {maxUnits: 2, carSpeed: 29, turnRate: 2.6, officers: 2, officerSpeed: 2.8, stopDist: 9, fleeDist: 23, resumeDist: 15, recallDist: 42},
-  {maxUnits: 3, carSpeed: 30, turnRate: 2.5, officers: 2, officerSpeed: 2.8, stopDist: 9, fleeDist: 24, resumeDist: 15, recallDist: 44},
-  {maxUnits: 4, carSpeed: 32, turnRate: 2.8, officers: 2, officerSpeed: 3.0, stopDist: 8, fleeDist: 21, resumeDist: 13, recallDist: 40},
-  {maxUnits: 5, carSpeed: 34, turnRate: 3.1, officers: 3, officerSpeed: 3.3, stopDist: 7, fleeDist: 18, resumeDist: 11, recallDist: 36}
+  {maxUnits: 1, carSpeed: 16, turnRate: 2.0, officers: 1, officerSpeed: 2.2, stopDist: 11, fleeDist: 28, resumeDist: 18, recallDist: 50},
+
+  {maxUnits: 2, carSpeed: 17, turnRate: 2.2, officers: 2, officerSpeed: 2.5, stopDist: 10, fleeDist: 26, resumeDist: 17, recallDist: 47},
+
+  {maxUnits: 3, carSpeed: 18, turnRate: 2.3, officers: 2, officerSpeed: 2.6, stopDist: 10, fleeDist: 26, resumeDist: 17, recallDist: 46},
+
+  {maxUnits: 4, carSpeed: 20, turnRate: 2.5, officers: 2, officerSpeed: 2.8, stopDist: 9, fleeDist: 24, resumeDist: 15, recallDist: 43},
+
+  {maxUnits: 5, carSpeed: 22, turnRate: 2.7, officers: 3, officerSpeed: 3.0, stopDist: 8, fleeDist: 22, resumeDist: 14, recallDist: 40},
 ];
 
 function getPoliceProfile() {
@@ -653,15 +657,27 @@ function updatePolice(dt) {
 
   // spawn in base al wanted level: reagisce subito, senza ritardi casuali.
   // le unità già in perlustrazione non contano ai fini dello spawn: se il
-  // ricercato risale, ne arrivano comunque di fresche in inseguimento
+  // ricercato risale, ne arrivano comunque di fresche in inseguimento.
   const desired = state.wanted > 0 ? profile.maxUnits : 0;
-  const activeCount = policeCars.filter(p => p.state !== 'patrol').length;
+  let activeCount = policeCars.filter(p => p.state !== 'patrol').length;
+
   if (activeCount < desired) {
     spawnPoliceCar();
+    activeCount = policeCars.filter(p => p.state !== 'patrol').length;
   }
 
-  // quando il ricercato torna a 0 le volanti non spariscono più: smettono
-  // di inseguire e si mettono a girare per la mappa in perlustrazione
+  // se il livello desiderato scende, le volanti in eccesso non devono continuare
+  // a inseguire: restano sul campo ma in pattugliamento, senza scomparire.
+  if (activeCount > desired) {
+    for (let ui = policeCars.length - 1; ui >= 0 && activeCount > desired; ui--) {
+      const p = policeCars[ui];
+      if (p.state !== 'patrol') {
+        startPolicePatrol(p);
+        activeCount = policeCars.filter(unit => unit.state !== 'patrol').length;
+      }
+    }
+  }
+
   if (state.wanted === 0) {
     policeCars.forEach(p => {if (p.state !== 'patrol') startPolicePatrol(p);});
   }
@@ -678,7 +694,12 @@ function updatePolice(dt) {
       updateVehicleDoors(m, dt);
 
       // se il giocatore torna a farsi notare, l'unità riprende subito l'inseguimento
-      if (state.wanted > 0) {p.state = 'chasing'; continue;}
+      // solo se il numero di volanti attive è ancora sotto il livello richiesto dalle stelle.
+      const chasingCount = policeCars.filter(unit => unit.state !== 'patrol').length;
+      if (state.wanted > 0 && chasingCount < desired) {
+        p.state = 'chasing';
+        continue;
+      }
 
       const wp = p.patrolWaypoint;
       const dx = wp.x - m.position.x, dz = wp.z - m.position.z;

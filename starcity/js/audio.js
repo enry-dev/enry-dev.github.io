@@ -163,6 +163,24 @@
         osc.start(t); osc.stop(t + 0.11);
       }
 
+      function playCoinPickupSound() {
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        const tones = [660, 880, 1320];
+        tones.forEach((frequency, index) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(frequency, t + index * 0.03);
+          gain.gain.setValueAtTime(0.001, t + index * 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.18, t + index * 0.03 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + index * 0.03 + 0.12);
+          osc.connect(gain).connect(audioCtx.destination);
+          osc.start(t + index * 0.03);
+          osc.stop(t + index * 0.03 + 0.13);
+        });
+      }
+
       function playCrashSound(strength) {
         if (!audioCtx) return;
         const t = audioCtx.currentTime;
@@ -243,6 +261,6 @@
       }
 
 
-  window.GameAudio = { initAudio, playGunshot, playKillSound, playCrashSound, playReloadStartSound, playReloadCompleteSound, playEmptyAmmoSound, playWeaponSwitchSound, updateSiren, resume };
+  window.GameAudio = { initAudio, playGunshot, playKillSound, playCrashSound, playReloadStartSound, playReloadCompleteSound, playEmptyAmmoSound, playWeaponSwitchSound, playCoinPickupSound, updateSiren, resume };
 })();
 

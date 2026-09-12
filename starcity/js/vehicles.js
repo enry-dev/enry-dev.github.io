@@ -121,6 +121,16 @@ function buildVehicle(colorHex) {
   return group;
 }
 
+function buildSupercar(colorHex) {
+  const group = buildVehicle(colorHex);
+  group.scale.set(0.94, 0.72, 1.25);
+  group.userData.vehicleType = 'supercar';
+  group.userData.isSupercar = true;
+  group.userData.playerDrivable = true;
+  group.userData.collisionRadius = 2.25;
+  return group;
+}
+
 function createVehicleBreakEffects(vehicle) {
   const effects = new THREE.Group();
   const smokeMaterial = new THREE.MeshBasicMaterial({
@@ -237,6 +247,919 @@ function updateVehicleDamageEffects(dt) {
   };
   worldVehicles.forEach(updateEffects);
   policeCars.forEach(unit => updateEffects(unit.mesh));
+}
+
+function buildClosedTruck(colorHex) {
+
+  const group = new THREE.Group();
+
+  // -------------------------------------------------------------------
+  // MATERIALI
+  // -------------------------------------------------------------------
+
+  const bodyColor = new THREE.Color(colorHex);
+
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: bodyColor,
+    metalness: 0.45,
+    roughness: 0.32
+  });
+
+  const bodyDarkMat = new THREE.MeshStandardMaterial({
+    color: bodyColor.clone().multiplyScalar(0.72),
+    metalness: 0.5,
+    roughness: 0.38
+  });
+
+  const darkMat = new THREE.MeshStandardMaterial({
+    color: 0x11151b,
+    metalness: 0.5,
+    roughness: 0.32
+  });
+
+  const blackMat = new THREE.MeshStandardMaterial({
+    color: 0x08090b,
+    metalness: 0.15,
+    roughness: 0.65
+  });
+
+  const glassMat = new THREE.MeshBasicMaterial({
+    color: 0xdfeaf7,
+    transparent: true,
+    opacity: 0.52,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+
+  const trimMat = new THREE.MeshStandardMaterial({
+    color: 0x242931,
+    metalness: 0.65,
+    roughness: 0.32
+  });
+
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0x686b70,
+    metalness: 0.9,
+    roughness: 0.2
+  });
+
+  const rubberMat = new THREE.MeshStandardMaterial({
+    color: 0x080808,
+    metalness: 0.05,
+    roughness: 0.8
+  });
+
+  const hubMat = new THREE.MeshStandardMaterial({
+    color: 0x565960,
+    metalness: 0.85,
+    roughness: 0.25
+  });
+
+  const headlightMat = new THREE.MeshBasicMaterial({
+    color: 0xfff1c7
+  });
+
+  const redLightMat = new THREE.MeshBasicMaterial({
+    color: 0xff2020
+  });
+
+  // -------------------------------------------------------------------
+  // UTILITY
+  // -------------------------------------------------------------------
+
+  function box(geo, mat, x, y, z, parent = group) {
+
+    const mesh = new THREE.Mesh(geo, mat);
+
+    mesh.position.set(x, y, z);
+
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    parent.add(mesh);
+
+    return mesh;
+  }
+
+  // -------------------------------------------------------------------
+  // MOTRICE
+  // -------------------------------------------------------------------
+
+  const tractor = new THREE.Group();
+
+  group.add(tractor);
+
+  // -------------------------------------------------------------------
+  // BASE / TELAIO CABINA
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(2.5, 0.55, 2.35),
+    bodyDarkMat,
+    0,
+    1.25,
+    -0.25,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(2.5, 0.45, 1.0),
+    bodyMat,
+    0,
+    1.7,
+    0.45,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(2.5, 0.45, 0.55),
+    bodyMat,
+    0,
+    1.7,
+    -1.1,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // STRUTTURA CABINA
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.28, 1.65, 0.42),
+    bodyMat,
+    -1.11,
+    2.4,
+    0.72,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.28, 1.65, 0.42),
+    bodyMat,
+    1.11,
+    2.4,
+    0.72,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.28, 1.65, 0.42),
+    bodyMat,
+    -1.11,
+    2.4,
+    -1.12,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.28, 1.65, 0.42),
+    bodyMat,
+    1.11,
+    2.4,
+    -1.12,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(2.5, 0.42, 2.35),
+    bodyMat,
+    0,
+    3.12,
+    -0.2,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(2.48, 0.18, 2.38),
+    trimMat,
+    0,
+    3.38,
+    -0.2,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // PARABREZZA
+  // -------------------------------------------------------------------
+
+  const windshield = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 0.86),
+    glassMat
+  );
+
+  windshield.position.set(
+    0,
+    2.48,
+    0.94
+  );
+
+  windshield.rotation.x = -0.08;
+
+  tractor.add(windshield);
+
+  box(
+    new THREE.BoxGeometry(1.95, 0.09, 0.14),
+    trimMat,
+    0,
+    2.94,
+    0.92,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // FINESTRINI LATERALI
+  // -------------------------------------------------------------------
+
+  const sideWindowLeft = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.25, 0.9),
+    glassMat
+  );
+
+  sideWindowLeft.position.set(
+    -1.255,
+    2.45,
+    -0.18
+  );
+
+  sideWindowLeft.rotation.y = Math.PI / 2;
+
+  tractor.add(sideWindowLeft);
+
+  const sideWindowRight = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.25, 0.9),
+    glassMat
+  );
+
+  sideWindowRight.position.set(
+    1.255,
+    2.45,
+    -0.18
+  );
+
+  sideWindowRight.rotation.y = -Math.PI / 2;
+
+  tractor.add(sideWindowRight);
+
+  // -------------------------------------------------------------------
+  // FINESTRINO POSTERIORE
+  // -------------------------------------------------------------------
+
+  const rearCabWindow = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.65, 0.72),
+    glassMat
+  );
+
+  rearCabWindow.position.set(
+    0,
+    2.45,
+    -1.34
+  );
+
+  rearCabWindow.rotation.y = Math.PI;
+
+  tractor.add(rearCabWindow);
+
+  // -------------------------------------------------------------------
+  // CORNICI VETRI
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.1, 1.05, 0.12),
+    trimMat,
+    -1.25,
+    2.43,
+    0.72,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.1, 1.05, 0.12),
+    trimMat,
+    1.25,
+    2.43,
+    0.72,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // GRIGLIA
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(1.8, 0.78, 0.12),
+    chromeMat,
+    0,
+    1.72,
+    1.48,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(1.5, 0.56, 0.08),
+    blackMat,
+    0,
+    1.72,
+    1.56,
+    tractor
+  );
+
+  for (let i = -4; i <= 4; i++) {
+
+    box(
+      new THREE.BoxGeometry(0.045, 0.48, 0.04),
+      chromeMat,
+      i * 0.17,
+      1.72,
+      1.61,
+      tractor
+    );
+
+  }
+
+  box(
+    new THREE.BoxGeometry(0.38, 0.16, 0.05),
+    chromeMat,
+    0,
+    1.72,
+    1.66,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // PARAURTI ANTERIORE
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(2.6, 0.3, 0.5),
+    trimMat,
+    0,
+    0.92,
+    1.55,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(2.25, 0.1, 0.5),
+    chromeMat,
+    0,
+    1.04,
+    1.73,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // FARI ANTERIORI
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.52, 0.30, 0.10),
+    headlightMat,
+    -0.78,
+    1.72,
+    1.59,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.52, 0.30, 0.10),
+    headlightMat,
+    0.78,
+    1.72,
+    1.59,
+    tractor
+  );
+
+  // FARI BASSI
+
+  box(
+    new THREE.BoxGeometry(0.24, 0.17, 0.10),
+    headlightMat,
+    -0.94,
+    1.18,
+    1.62,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.24, 0.17, 0.10),
+    headlightMat,
+    0.94,
+    1.18,
+    1.62,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // SPECCHI
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.12, 0.12, 0.7),
+    trimMat,
+    -1.43,
+    2.48,
+    0.65,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.2, 0.38, 0.14),
+    blackMat,
+    -1.57,
+    2.6,
+    0.68,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.12, 0.12, 0.7),
+    trimMat,
+    1.43,
+    2.48,
+    0.65,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.2, 0.38, 0.14),
+    blackMat,
+    1.57,
+    2.6,
+    0.68,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // PEDANE
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.3, 0.18, 1.55),
+    trimMat,
+    -1.30,
+    0.98,
+    -0.3,
+    tractor
+  );
+
+  box(
+    new THREE.BoxGeometry(0.3, 0.18, 1.55),
+    trimMat,
+    1.30,
+    0.98,
+    -0.3,
+    tractor
+  );
+
+  // -------------------------------------------------------------------
+  // SERBATOI
+  // -------------------------------------------------------------------
+
+  const tankLeft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.28, 1.55, 16),
+    chromeMat
+  );
+
+  tankLeft.rotation.z = Math.PI / 2;
+
+  tankLeft.position.set(
+    -1.30,
+    0.92,
+    -0.72
+  );
+
+  tankLeft.castShadow = true;
+
+  tractor.add(tankLeft);
+
+  const tankRight = tankLeft.clone();
+
+  tankRight.position.x = 1.30;
+
+  tractor.add(tankRight);
+
+  // -------------------------------------------------------------------
+  // COLLEGAMENTO MOTRICE-RIMORCHIO
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(1.35, 0.38, 1.35),
+    darkMat,
+    0,
+    1.05,
+    -1.55,
+    group
+  );
+
+  const fifthWheel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.55, 0.12, 20),
+    chromeMat
+  );
+
+  fifthWheel.rotation.x = Math.PI / 2;
+
+  fifthWheel.position.set(
+    0,
+    1.20,
+    -1.70
+  );
+
+  fifthWheel.castShadow = true;
+
+  group.add(fifthWheel);
+
+  // -------------------------------------------------------------------
+  // RIMORCHIO
+  // -------------------------------------------------------------------
+
+  const trailer = new THREE.Group();
+
+  group.add(trailer);
+
+  box(
+    new THREE.BoxGeometry(2.45, 0.28, 6.8),
+    darkMat,
+    0,
+    0.86,
+    -5.05,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(2.72, 2.45, 6.7),
+    bodyMat,
+    0,
+    2.05,
+    -5.0,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(2.76, 0.32, 6.78),
+    bodyDarkMat,
+    0,
+    0.95,
+    -5.0,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(2.8, 0.18, 6.85),
+    trimMat,
+    0,
+    3.34,
+    -5.0,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // FASCE LATERALI
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.06, 0.14, 6.45),
+    chromeMat,
+    -1.37,
+    2.72,
+    -5.0,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(0.06, 0.14, 6.45),
+    chromeMat,
+    1.37,
+    2.72,
+    -5.0,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // PANNELLI LATERALI
+  // -------------------------------------------------------------------
+
+  for (let i = 0; i < 6; i++) {
+
+    const z = -2.35 - i * 1.05;
+
+    box(
+      new THREE.BoxGeometry(0.045, 2.05, 0.035),
+      trimMat,
+      -1.385,
+      2.0,
+      z,
+      trailer
+    );
+
+    box(
+      new THREE.BoxGeometry(0.045, 2.05, 0.035),
+      trimMat,
+      1.385,
+      2.0,
+      z,
+      trailer
+    );
+
+  }
+
+  // -------------------------------------------------------------------
+  // POSTERIORE RIMORCHIO
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(2.62, 2.35, 0.1),
+    bodyDarkMat,
+    0,
+    2.05,
+    -8.38,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(1.27, 2.15, 0.08),
+    bodyMat,
+    -0.66,
+    2.05,
+    -8.45,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(1.27, 2.15, 0.08),
+    bodyMat,
+    0.66,
+    2.05,
+    -8.45,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(0.05, 2.05, 0.1),
+    trimMat,
+    0,
+    2.05,
+    -8.5,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // MANIGLIE
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.08, 0.42, 0.08),
+    chromeMat,
+    -0.1,
+    2.0,
+    -8.55,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(0.08, 0.42, 0.08),
+    chromeMat,
+    0.1,
+    2.0,
+    -8.55,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // PARAURTI POSTERIORE
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(2.72, 0.25, 0.35),
+    trimMat,
+    0,
+    0.72,
+    -8.55,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(2.35, 0.1, 0.25),
+    chromeMat,
+    0,
+    0.82,
+    -8.72,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // FANALI POSTERIORI
+  // -------------------------------------------------------------------
+
+  box(
+    new THREE.BoxGeometry(0.25, 0.42, 0.08),
+    redLightMat,
+    -1.1,
+    1.45,
+    -8.58,
+    trailer
+  );
+
+  box(
+    new THREE.BoxGeometry(0.25, 0.42, 0.08),
+    redLightMat,
+    1.1,
+    1.45,
+    -8.58,
+    trailer
+  );
+
+  // -------------------------------------------------------------------
+  // RUOTE
+  // -------------------------------------------------------------------
+
+  const wheelGeo = new THREE.CylinderGeometry(
+    0.55,
+    0.55,
+    0.46,
+    18
+  );
+
+  const wheelPositions = [
+
+    // Motrice
+    [-1.35, 0.55, 0.72],
+    [1.35, 0.55, 0.72],
+
+    // Rimorchio
+    [-1.37, 0.55, -4.45],
+    [1.37, 0.55, -4.45],
+
+    [-1.37, 0.55, -5.75],
+    [1.37, 0.55, -5.75],
+
+    [-1.37, 0.55, -7.0],
+    [1.37, 0.55, -7.0]
+  ];
+
+  group.userData.wheels = [];
+
+  wheelPositions.forEach(p => {
+
+    const tire = new THREE.Mesh(
+      wheelGeo,
+      rubberMat
+    );
+
+    tire.rotation.z = Math.PI / 2;
+
+    tire.position.set(
+      p[0],
+      p[1],
+      p[2]
+    );
+
+    tire.castShadow = true;
+
+    group.add(tire);
+
+    group.userData.wheels.push(tire);
+
+    const hub = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.22,
+        0.22,
+        0.48,
+        12
+      ),
+      hubMat
+    );
+
+    hub.rotation.z = Math.PI / 2;
+
+    hub.position.copy(tire.position);
+
+    group.add(hub);
+
+  });
+
+  // -------------------------------------------------------------------
+  // FARI DINAMICI
+  // -------------------------------------------------------------------
+
+  const truckHeadlightBulbMat = new THREE.MeshBasicMaterial({
+    color: 0xfff1c7
+  });
+
+  group.userData.headlightBulbs = [];
+
+  const truckHeadlightPositions = [
+    [-0.78, 1.72, 1.64],
+    [0.78, 1.72, 1.64]
+  ];
+
+  truckHeadlightPositions.forEach(p => {
+
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.13, 10, 10),
+      truckHeadlightBulbMat.clone()
+    );
+
+    bulb.position.set(
+      p[0],
+      p[1],
+      p[2]
+    );
+
+    tractor.add(bulb);
+
+    group.userData.headlightBulbs.push(bulb);
+
+  });
+
+  const truckBeam = new THREE.SpotLight(
+    0xfff0c2,
+    35,
+    32,
+    Math.PI / 5,
+    0.75,
+    1.2
+  );
+
+  truckBeam.position.set(
+    0,
+    1.72,
+    1.66
+  );
+
+  const truckBeamTarget = new THREE.Object3D();
+
+  truckBeamTarget.position.set(
+    0,
+    1.0,
+    18
+  );
+
+  tractor.add(truckBeam);
+  tractor.add(truckBeamTarget);
+
+  truckBeam.target = truckBeamTarget;
+
+  truckBeam.castShadow = false;
+
+  group.userData.headlight = truckBeam;
+
+  // -------------------------------------------------------------------
+  // PORTIERE
+  // -------------------------------------------------------------------
+
+  const doors = createDoors(
+    2.8,
+    2.4,
+    3.0,
+    bodyDarkMat.color.getHex()
+  );
+
+  doors.left.pivot.position.set(
+    -1.27,
+    1.35,
+    -0.15
+  );
+
+  doors.right.pivot.position.set(
+    1.27,
+    1.35,
+    -0.15
+  );
+
+  group.add(
+    doors.left.pivot,
+    doors.right.pivot
+  );
+
+  group.userData.doors = doors;
+
+  // -------------------------------------------------------------------
+  // USER DATA
+  // -------------------------------------------------------------------
+
+  group.userData.hasDriver = false;
+  group.userData.driverMesh = null;
+
+  group.userData.vx = 0;
+  group.userData.vz = 0;
+
+  group.userData.speedMult = 1;
+  group.userData.collisionCooldown = 0;
+
+  group.userData.isWrecked = false;
+  group.userData.breakEffects = null;
+
+  group.userData.isClosedTruck = true;
+  group.userData.isTruck = true;
+  group.userData.playerDrivable = true;
+
+  group.userData.vehicleType = 'closedTruck';
+
+  group.userData.collisionRadius = 2.8;
+
+  scene.add(group);
+
+  return group;
 }
 
 function buildCar() {
@@ -362,7 +1285,9 @@ function spawnCivilianCars(n) {
   const palette = [0x2f6fd9, 0xdadada, 0x2fa85a, 0xd9c62f, 0x8a4fd9, 0xd96b2f, 0x2f2f2f];
   for (let i = 0; i < n; i++) {
     const color = palette[Math.floor(Math.random() * palette.length)];
-    const v = buildVehicle(color);
+    const isSupercar = Math.random() < 0.1;
+    const isClosedTruck = !isSupercar && Math.random() < 0.3;
+    const v = isSupercar ? buildSupercar(color) : (isClosedTruck ? buildClosedTruck(color) : buildVehicle(color));
     const spot = findSafeVehiclePosition(v, randomParkingSpot);
     if (!spot) {
       scene.remove(v);
@@ -372,7 +1297,13 @@ function spawnCivilianCars(n) {
     v.rotation.y = spot.rot;
 
     const driver = createCivilianDriverMesh();
-    driver.position.set(-0.4, 0, 0.3);
+    if (isClosedTruck) {
+      driver.position.set(0, 0.7, 0.1);
+      driver.scale.set(1.12, 1.12, 1.12);
+    } else {
+      driver.position.set(-0.4, 0, 0.3);
+      driver.scale.set(1, 1, 1);
+    }
     v.add(driver);
     v.userData.hasDriver = true;
     v.userData.driverMesh = driver;
@@ -380,7 +1311,7 @@ function spawnCivilianCars(n) {
     // traffico: l'auto gira per la città finché ha un autista vivo a bordo
     v.userData.trafficAxis = spot.rot === 0 ? 'vertical' : 'horizontal';
     v.userData.waypoint = randomTrafficWaypoint(v);
-    v.userData.driveSpeed = 11 + Math.random() * 7;
+    v.userData.driveSpeed = isSupercar ? 35 + Math.random() * 12 : (isClosedTruck ? 12 + Math.random() * 4 : 18 + Math.random() * 8);
 
     worldVehicles.push(v);
   }

@@ -4,12 +4,14 @@ function init() {
   scene = new THREE.Scene();
   clock = new THREE.Clock();
 
+  const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 900;
+
   camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
 
   renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+  renderer.shadowMap.enabled = !isMobile;
   document.getElementById('game-container').appendChild(renderer.domElement);
 
   hemi = new THREE.HemisphereLight(0x99bbff, 0x223311, 0.65);

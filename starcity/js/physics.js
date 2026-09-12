@@ -135,10 +135,28 @@ function getVehicleAxes(vehicle) {
   };
 }
 
+function getVehicleCollisionSize(vehicle) {
+  if (!vehicle || !vehicle.userData) return {halfWidth: VEHICLE_HALF_WIDTH, halfLength: VEHICLE_HALF_LENGTH, centerOffset: {x: 0, z: 0}};
+  if (vehicle.userData.vehicleType === 'closedTruck') {
+    return {halfWidth: 1.7, halfLength: 4.8, centerOffset: {x: 0, z: -2.4}};
+  }
+  return {halfWidth: VEHICLE_HALF_WIDTH, halfLength: VEHICLE_HALF_LENGTH, centerOffset: {x: 0, z: 0}};
+}
+
+function getVehicleCollisionCenter(vehicle) {
+  const {centerOffset} = getVehicleCollisionSize(vehicle);
+  const axes = getVehicleAxes(vehicle);
+  return {
+    x: vehicle.position.x + centerOffset.x * axes.side.x + centerOffset.z * axes.forward.x,
+    z: vehicle.position.z + centerOffset.x * axes.side.z + centerOffset.z * axes.forward.z
+  };
+}
+
 function projectVehicle(vehicle, axis) {
   const axes = getVehicleAxes(vehicle);
-  return VEHICLE_HALF_WIDTH * Math.abs(axes.side.x * axis.x + axes.side.z * axis.z) +
-    VEHICLE_HALF_LENGTH * Math.abs(axes.forward.x * axis.x + axes.forward.z * axis.z);
+  const {halfWidth, halfLength} = getVehicleCollisionSize(vehicle);
+  return halfWidth * Math.abs(axes.side.x * axis.x + axes.side.z * axis.z) +
+    halfLength * Math.abs(axes.forward.x * axis.x + axes.forward.z * axis.z);
 }
 
 function getVehicleOverlap(a, b) {
@@ -146,7 +164,9 @@ function getVehicleOverlap(a, b) {
   const axes = [axesA.forward, axesA.side, axesB.forward, axesB.side];
   let smallestOverlap = Infinity;
   let smallestAxis = null;
-  const centerDelta = {x: b.position.x - a.position.x, z: b.position.z - a.position.z};
+  const centerA = getVehicleCollisionCenter(a);
+  const centerB = getVehicleCollisionCenter(b);
+  const centerDelta = {x: centerB.x - centerA.x, z: centerB.z - centerA.z};
 
   for (const axis of axes) {
     const distance = Math.abs(centerDelta.x * axis.x + centerDelta.z * axis.z);
@@ -212,7 +232,8 @@ function resolveVehicleCollisions(dt) {
     const a = bodies[i];
     for (let j = i + 1; j < bodies.length; j++) {
       const b = bodies[j];
-      if (a !== car && b !== car) continue;
+      const isPolicePair = policeCars.some(p => p.mesh === a || p.mesh === b);
+      if (!(a === car || b === car || isPolicePair)) continue;
       const collision = getVehicleOverlap(a, b);
       if (!collision) continue;
       const {nx, nz, overlap} = collision;

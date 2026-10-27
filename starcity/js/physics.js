@@ -21,6 +21,9 @@ function collidesBuildingForVehicle(vehicle, x, z) {
   const testAxes = [axes.forward, axes.side, {x: 1, z: 0}, {x: 0, z: 1}];
 
   for (const building of buildingsAABB) {
+    const buildingTop = Number.isFinite(building.maxY) ? building.maxY : 3.2;
+    if (vehicle.userData.flyEnabled && vehicle.position.y > buildingTop + 0.5) continue;
+
     const buildingCenter = {
       x: (building.minX + building.maxX) / 2,
       z: (building.minZ + building.maxZ) / 2
@@ -234,6 +237,7 @@ function resolveVehicleCollisions(dt) {
       const b = bodies[j];
       const isPolicePair = policeCars.some(p => p.mesh === a || p.mesh === b);
       if (!(a === car || b === car || isPolicePair)) continue;
+      if ((a === car || b === car) && car.position.y > 2.5) continue;
       const collision = getVehicleOverlap(a, b);
       if (!collision) continue;
       const {nx, nz, overlap} = collision;

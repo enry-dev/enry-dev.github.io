@@ -5,6 +5,7 @@ const BLOCK_SIZE = 50;         // dimensione blocco
 const ROAD_WIDTH = 10;         // larghezza strada
 const CITY_HALF = (BLOCKS * BLOCK_SIZE) / 2;
 const MAX_STARS = 5;
+const MAX_COMMAND_STARS = 20;
 const VEHICLE_HALF_WIDTH = 1.1;
 const VEHICLE_HALF_LENGTH = 2.2;
 const POLICE_BASE_MAX_SPEED = 22;

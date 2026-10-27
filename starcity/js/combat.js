@@ -1,4 +1,4 @@
-﻿// INPUT
+// INPUT
 // ---------------------------------------------------------------------
 function handleKeyDown(e) {
   const k = e.key.toLowerCase();

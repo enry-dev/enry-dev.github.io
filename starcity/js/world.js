@@ -109,7 +109,8 @@ function buildCity() {
 
       buildingsAABB.push({
         minX: cx - bw / 2, maxX: cx + bw / 2,
-        minZ: cz - bd / 2, maxZ: cz + bd / 2
+        minZ: cz - bd / 2, maxZ: cz + bd / 2,
+        maxY: height
       });
     }
   }

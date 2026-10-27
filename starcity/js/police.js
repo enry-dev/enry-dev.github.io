@@ -1,6 +1,6 @@
-﻿// POLICE
+// POLICE
 // ---------------------------------------------------------------------
-function spawnPoliceCar() {
+function spawnPoliceCar(candidateFactory = null) {
   const g = new THREE.Group();
   const bw = 2.2, bh = 0.9, bl = 4.4;
   const body = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bl), new THREE.MeshStandardMaterial({color: 0x0a0a2a}));
@@ -41,7 +41,7 @@ function spawnPoliceCar() {
   g.userData.collisionCooldown = 0;
 
   const refPos = mode === 'car' ? car.position : player.position;
-  const spawn = findSafeVehiclePosition(g, () => {
+  const spawn = findSafeVehiclePosition(g, candidateFactory || (() => {
     const angle = Math.random() * Math.PI * 2;
     const dist = 60 + Math.random() * 30;
     return {
@@ -49,7 +49,7 @@ function spawnPoliceCar() {
       z: refPos.z + Math.sin(angle) * dist,
       rot: angle + Math.PI
     };
-  });
+  }));
   if (!spawn) return;
   g.position.set(spawn.x, 0, spawn.z);
   g.rotation.y = spawn.rot;
@@ -635,8 +635,19 @@ const POLICE_LEVELS = [
   {maxUnits: 5, carSpeed: 22, turnRate: 2.7, officers: 3, officerSpeed: 3.0, stopDist: 8, fleeDist: 22, resumeDist: 14, recallDist: 40},
 ];
 
+const MAX_ACTIVE_POLICE_UNITS = 20;
+
 function getPoliceProfile() {
-  return POLICE_LEVELS[Math.max(0, Math.min(MAX_STARS, state.wanted)) - 1] || POLICE_LEVELS[0];
+  const baseLevel = Math.min(MAX_STARS, state.wanted);
+  const baseProfile = POLICE_LEVELS[Math.max(0, baseLevel) - 1] || POLICE_LEVELS[0];
+  if (state.wanted <= MAX_STARS) return baseProfile;
+
+  const extraStarMultiplier = 2 ** (state.wanted - MAX_STARS);
+  return {
+    ...baseProfile,
+    carSpeed: baseProfile.carSpeed * (1 + 0.05 * (state.wanted - MAX_STARS)),
+    maxUnits: Math.min(MAX_ACTIVE_POLICE_UNITS, baseProfile.maxUnits * extraStarMultiplier)
+  };
 }
 
 function getPoliceInterceptPoint() {
@@ -806,6 +817,7 @@ function updatePolice(dt) {
           p.returnedCount++;
         } else {
           animateHumanoid(off.mesh, 0, dt);
+          if (mode === 'car' && car.userData.flyEnabled) continue;
           doArrest();
           return; // stato resettato ovunque, esci subito dal ciclo
         }

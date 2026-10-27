@@ -1,4 +1,4 @@
-﻿// PORTIERE DEI VEICOLI (apertura/chiusura animata)
+// PORTIERE DEI VEICOLI (apertura/chiusura animata)
 // ---------------------------------------------------------------------
 function createDoors(bw, height, length, doorColor) {
   function makeDoor(sign) {
@@ -1281,14 +1281,14 @@ function randomTrafficWaypoint(vehicle) {
   return verticalRoad ? {x: roadX, z: alongRoad} : {x: alongRoad, z: roadZ};
 }
 
-function spawnCivilianCars(n) {
+function spawnCivilianCars(n, candidateFactory = randomParkingSpot) {
   const palette = [0x2f6fd9, 0xdadada, 0x2fa85a, 0xd9c62f, 0x8a4fd9, 0xd96b2f, 0x2f2f2f];
   for (let i = 0; i < n; i++) {
     const color = palette[Math.floor(Math.random() * palette.length)];
     const isSupercar = Math.random() < 0.1;
     const isClosedTruck = !isSupercar && Math.random() < 0.3;
     const v = isSupercar ? buildSupercar(color) : (isClosedTruck ? buildClosedTruck(color) : buildVehicle(color));
-    const spot = findSafeVehiclePosition(v, randomParkingSpot);
+    const spot = findSafeVehiclePosition(v, attempt => candidateFactory(attempt, i));
     if (!spot) {
       scene.remove(v);
       continue;
@@ -1309,7 +1309,7 @@ function spawnCivilianCars(n) {
     v.userData.driverMesh = driver;
 
     // traffico: l'auto gira per la città finché ha un autista vivo a bordo
-    v.userData.trafficAxis = spot.rot === 0 ? 'vertical' : 'horizontal';
+    v.userData.trafficAxis = Math.abs(Math.sin(spot.rot)) < 0.5 ? 'vertical' : 'horizontal';
     v.userData.waypoint = randomTrafficWaypoint(v);
     v.userData.driveSpeed = isSupercar ? 35 + Math.random() * 12 : (isClosedTruck ? 12 + Math.random() * 4 : 18 + Math.random() * 8);
 

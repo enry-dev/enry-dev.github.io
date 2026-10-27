@@ -1,4 +1,4 @@
-﻿// UPDATE LOOP PIECES
+// UPDATE LOOP PIECES
 // ---------------------------------------------------------------------
 const daySkyColor = new THREE.Color(0x8ec9ff);
 const nightSkyColor = new THREE.Color(0x050515);
@@ -26,6 +26,7 @@ function getDisplayedSpeedKmh(speedValue, vehicleType) {
 
 function getVehicleDisplayMaxKmh(vehicle) {
   if (!vehicle || !vehicle.userData) return 130;
+  if (Number.isFinite(vehicle.userData.commandMaxKmh)) return vehicle.userData.commandMaxKmh;
   const vehicleType = vehicle.userData.vehicleType || 'standard';
   if (vehicleType === 'supercar') return 280;
   if (vehicleType === 'closedTruck' || vehicle.userData.isTruck) return 80;
@@ -63,7 +64,9 @@ function updateCar(dt) {
   // velocità massima e retromarcia scendono tutte in base al danno accumulato
   const dmgFactor = vehicleSpeedMult(car);
   const accel = accelBase * dmgFactor;
-  const maxSpeed = maxBaseSpeed * dmgFactor;
+  const maxSpeed = Number.isFinite(car.userData.commandMaxKmh)
+    ? car.userData.commandMaxKmh / getVehicleDisplaySpeedFactor(vehicleType) * dmgFactor
+    : maxBaseSpeed * dmgFactor;
   const reverseMax = reverseBase * dmgFactor;
   const brakeForce = baseBrakeForce;
 
@@ -71,7 +74,13 @@ function updateCar(dt) {
   else if (keys['s']) carSpeed -= brakeForce * touchMoveIntensity * dt;
   else carSpeed *= Math.pow(friction, dt * 60);
 
-  if (keys[' ']) carSpeed *= Math.pow(0.9, dt * 60);
+  const isFlying = car.userData.flyEnabled === true;
+  if (isFlying) {
+    if (keys[' ']) car.position.y = Math.min(100, car.position.y + 12 * dt);
+    else if (keys['shift']) car.position.y = Math.max(0, car.position.y - 12 * dt);
+  } else if (keys[' ']) {
+    carSpeed *= Math.pow(0.9, dt * 60);
+  }
 
   carSpeed = Math.max(reverseMax, Math.min(maxSpeed, carSpeed));
 
@@ -102,7 +111,7 @@ function updateCar(dt) {
   car.userData.wheels.forEach(w => w.rotation.x -= carSpeed * dt * 2);
 
   // investimento pedoni
-  if (Math.abs(carSpeed) > 6) {
+  if (Math.abs(carSpeed) > 6 && car.position.y <= 2.5) {
     for (let i = pedestrians.length - 1; i >= 0; i--) {
       if (dist2D(car.position, pedestrians[i].mesh.position) < 1.45) {
         spawnDeathAnimation(pedestrians[i].mesh);
@@ -245,7 +254,7 @@ function updateHUD() {
   document.getElementById('health-fill').style.width = Math.max(0, state.health) + '%';
   document.getElementById('money').textContent = '$ ' + Math.floor(state.money).toLocaleString('it-IT');
   let starsHTML = '';
-  for (let i = 0; i < MAX_STARS; i++) {
+  for (let i = 0; i < Math.max(MAX_STARS, state.wanted); i++) {
     starsHTML += `<span class="${i < state.wanted ? 'star-on' : 'star-off'}">★</span>`;
   }
   document.getElementById('stars').innerHTML = starsHTML;
@@ -304,7 +313,7 @@ function updateDebugPanel() {
     `POS    X ${x} / Z ${z}\n` +
     `SPEED  ${speed} KM/H  CAR ${vehicleState}\n` +
     `HEALTH ${Math.round(state.health)}\n` +
-    `WANTED ${state.wanted}/${MAX_STARS}  AIM ${aiming ? 'ON' : 'OFF'}\n` +
+    `WANTED ${state.wanted}/${Math.max(MAX_STARS, state.wanted)}  AIM ${aiming ? 'ON' : 'OFF'}\n` +
     `CAMERA FOV ${cameraFov}  LOCK ${pointerLocked ? 'ON' : 'OFF'}\n` +
     `WORLD  DAY ${daylight}%  BUILD ${buildingsAABB.length}\n` +
     `ACTORS P:${pedestrians.length} C:${policeCars.length} V:${worldVehicles.length}\n` +
